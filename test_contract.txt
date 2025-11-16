@@ -1,0 +1,43 @@
+SAMPLE SERVICE AGREEMENT
+
+This Service Agreement is entered into on January 1, 2024 between Tech Solutions Inc. (Provider) and ABC Corporation (Client).
+
+SERVICES PROVIDED:
+The Provider agrees to provide software development services including:
+- Web application development
+- Database design and implementation
+- System testing and quality assurance
+- Technical documentation
+
+PAYMENT TERMS:
+- Hourly rate: $150 per hour
+- Total project amount: $50,000
+- Payment due within 30 days of invoice
+- Late payment penalty: 2% per month
+
+PROJECT TIMELINE:
+- Start date: January 15, 2024
+- End date: June 15, 2024
+- Delivery milestones every 2 weeks
+
+INTELLECTUAL PROPERTY:
+All work products and intellectual property created shall be owned by the Client upon full payment.
+
+CONFIDENTIALITY:
+Both parties agree to maintain strict confidentiality of proprietary information.
+
+TERMINATION:
+Either party may terminate this agreement with 30 days written notice.
+
+WARRANTIES:
+Provider warrants that all services will be performed with professional competence and in accordance with industry standards.
+
+LIABILITY:
+Provider's liability is limited to the total amount paid under this agreement.
+
+GOVERNING LAW:
+This agreement shall be governed by the laws of the State of California.
+
+Provider: Tech Solutions Inc.
+Client: ABC Corporation
+Date: January 1, 2024

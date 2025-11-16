@@ -104,25 +104,29 @@ class EntityExtractor:
         return entities
     
     def extract_named_entities_nltk(self, text: str) -> List[Dict[str, Any]]:
-        """Extract named entities using NLTK as fallback"""
+        """Extract named entities using NLTK with error handling"""
         if not NLTK_AVAILABLE:
             return []
         
-        tokens = word_tokenize(text)
-        pos_tags = pos_tag(tokens)
-        chunks = ne_chunk(pos_tags)
-        
-        entities = []
-        for chunk in chunks:
-            if hasattr(chunk, 'label'):
-                entity_text = ' '.join([token for token, pos in chunk])
-                entities.append({
-                    'text': entity_text,
-                    'label': chunk.label(),
-                    'start': -1,  # NLTK doesn't provide character positions
-                    'end': -1,
-                    'confidence': 0.8  # Default confidence for NLTK
-                })
+        try:
+            tokens = word_tokenize(text)
+            pos_tags = pos_tag(tokens)
+            chunks = ne_chunk(pos_tags)
+            
+            entities = []
+            for chunk in chunks:
+                if hasattr(chunk, 'label'):
+                    entity_text = ' '.join([token for token, pos in chunk])
+                    entities.append({
+                        'text': entity_text,
+                        'label': chunk.label(),
+                        'start': -1,  # NLTK doesn't provide character positions
+                        'end': -1,
+                        'confidence': 0.8  # Default confidence for NLTK
+                    })
+        except Exception as e:
+            print(f"NLTK entity extraction failed: {e}. Using regex fallback.")
+            return self.extract_regex_entities(text)
         
         return entities
     

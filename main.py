@@ -15,14 +15,30 @@ def setup_dependencies():
     # Download NLTK data if needed
     try:
         import nltk
-        try:
-            nltk.data.find('corpora/stopwords')
-        except LookupError:
-            print("Downloading NLTK data...")
-            nltk.download('stopwords', quiet=True)
-            nltk.download('punkt', quiet=True)
-            nltk.download('wordnet', quiet=True)
-            nltk.download('averaged_perceptron_tagger', quiet=True)
+        
+        # List of required NLTK data
+        nltk_datasets = [
+            ('corpora/stopwords', 'stopwords'),
+            ('tokenizers/punkt', 'punkt'),
+            ('tokenizers/punkt_tab', 'punkt_tab'),
+            ('corpora/wordnet', 'wordnet'),
+            ('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger'),
+            ('taggers/averaged_perceptron_tagger_eng', 'averaged_perceptron_tagger_eng'),
+            ('chunkers/maxent_ne_chunker', 'maxent_ne_chunker'),
+            ('chunkers/maxent_ne_chunker_tab', 'maxent_ne_chunker_tab'),
+            ('corpora/words', 'words')
+        ]
+        
+        for data_path, package_name in nltk_datasets:
+            try:
+                nltk.data.find(data_path)
+            except LookupError:
+                try:
+                    print(f"Downloading NLTK {package_name}...")
+                    nltk.download(package_name, quiet=True)
+                except Exception as e:
+                    print(f"Warning: Could not download {package_name}: {e}")
+                    
     except ImportError:
         print("NLTK not available. Some NLP features will be limited.")
     
