@@ -636,7 +636,7 @@ class SmartContractProcessor:
             
             # Process the generated contract through our analysis pipeline
             contract_code = generation_result['contract_code']
-            knowledge_graph = self.process_contract_content(contract_code)
+            knowledge_graph = self.process_contract(contract_code)
             
             # Enhance result with our analysis
             generation_result.update({

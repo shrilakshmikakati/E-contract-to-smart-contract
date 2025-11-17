@@ -360,9 +360,23 @@ class MainWindow:
                 self._update_progress(10)
                 
                 # Prepare e-contract analysis data
+                # Convert entities dictionary to list format expected by contract generator
+                entities_list = []
+                for entity_id, entity_data in self.econtract_kg.entities.items():
+                    entity_dict = {'id': entity_id}
+                    entity_dict.update(entity_data)
+                    entities_list.append(entity_dict)
+                
+                # Convert relationships dictionary to list format
+                relationships_list = []
+                for rel_id, rel_data in self.econtract_kg.relationships.items():
+                    rel_dict = {'id': rel_id}
+                    rel_dict.update(rel_data)
+                    relationships_list.append(rel_dict)
+                
                 econtract_analysis = {
-                    'entities': self.econtract_kg.entities,
-                    'relationships': self.econtract_kg.relationships,
+                    'entities': entities_list,
+                    'relationships': relationships_list,
                     'knowledge_graph': self.econtract_kg,
                     'metadata': self.econtract_kg.metadata
                 }

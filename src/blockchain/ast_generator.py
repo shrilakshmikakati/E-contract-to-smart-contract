@@ -41,15 +41,21 @@ class ASTGenerator:
             if not installed_versions:
                 # Install a default version
                 print("Installing Solidity compiler...")
-                install_solc('0.8.19')
-                self.solc_version = '0.8.19'
-                print("Solidity compiler installed successfully")
+                try:
+                    install_solc('0.8.19')
+                    self.solc_version = '0.8.19'
+                    print("Solidity compiler installed successfully")
+                except Exception as install_error:
+                    print(f"Failed to install Solidity compiler: {install_error}")
+                    self.solc_version = None
+                    print("Will use fallback AST generation")
             else:
                 self.solc_version = str(max(installed_versions))
                 print(f"Using existing Solidity compiler version: {self.solc_version}")
         except Exception as e:
             print(f"Error setting up Solidity compiler: {e}")
             print("Continuing with fallback AST generation...")
+            self.solc_version = None
     
     def extract_solidity_version(self, source_code: str) -> Optional[str]:
         """
@@ -126,6 +132,64 @@ class ASTGenerator:
                 return True
             return False
     
+    def generate_ast(self, source_code: str) -> Dict[str, Any]:
+        """
+        Generate AST from Solidity source code - wrapper for compile_and_generate_ast
+        
+        Args:
+            source_code: Solidity source code
+            
+        Returns:
+            AST dictionary
+        """
+        # Check if compiler is available
+        if self.solc_version is None or not SOLCX_AVAILABLE:
+            return self._generate_fallback_ast(source_code)
+            
+        result = self.compile_and_generate_ast(source_code)
+        if result is None:
+            return self._generate_fallback_ast(source_code)
+        return result
+        
+    def _generate_fallback_ast(self, source_code: str) -> Dict[str, Any]:
+        """
+        Generate fallback AST when compiler is not available
+        """
+        try:
+            import re
+            
+            # Extract contract name
+            contract_match = re.search(r'contract\s+(\w+)', source_code)
+            contract_name = contract_match.group(1) if contract_match else 'UnknownContract'
+            
+            # Extract functions
+            function_matches = re.findall(r'function\s+(\w+)\s*\([^)]*\)', source_code)
+            
+            # Extract events
+            event_matches = re.findall(r'event\s+(\w+)\s*\([^)]*\)', source_code)
+            
+            # Basic AST structure
+            return {
+                'contract_name': contract_name,
+                'ast': {
+                    'functions': function_matches,
+                    'events': event_matches,
+                    'type': 'fallback_ast'
+                },
+                'compilation_successful': False,
+                'fallback_parsing': True,
+                'compiler_version': 'fallback'
+            }
+            
+        except Exception as e:
+            return {
+                'contract_name': 'ErrorContract',
+                'ast': {},
+                'compilation_successful': False,
+                'error': str(e),
+                'compiler_version': 'error'
+            }
+
     def compile_and_generate_ast(self, source_code: str, contract_name: str = None) -> Optional[Dict[str, Any]]:
         """
         Compile Solidity source code and generate AST
