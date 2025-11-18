@@ -23,7 +23,10 @@ except ImportError:
     NLTK_AVAILABLE = False
     print("NLTK not available. Install with: pip install nltk")
 
-from ..utils.config import Config
+try:
+    from ..utils.config import Config
+except ImportError:
+    from utils.config import Config
 
 class EntityExtractor:
     """Extracts entities and relationships from e-contract text"""

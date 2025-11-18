@@ -9,10 +9,16 @@ from datetime import datetime
 from collections import defaultdict
 import numpy as np
 
-from .knowledge_graph import KnowledgeGraph
-from .econtract_processor import EContractProcessor
-from .smartcontract_processor import SmartContractProcessor
-from ..utils.file_handler import FileHandler
+try:
+    from .knowledge_graph import KnowledgeGraph
+    from .econtract_processor import EContractProcessor
+    from .smartcontract_processor import SmartContractProcessor
+    from ..utils.file_handler import FileHandler
+except ImportError:
+    from core.knowledge_graph import KnowledgeGraph
+    from core.econtract_processor import EContractProcessor
+    from core.smartcontract_processor import SmartContractProcessor
+    from utils.file_handler import FileHandler
 
 class KnowledgeGraphComparator:
     """

@@ -16,8 +16,12 @@ except ImportError:
     SOLCX_AVAILABLE = False
     print("solcx not available. Install with: pip install py-solc-x")
 
-from ..utils.config import Config
-from ..utils.file_handler import FileHandler
+try:
+    from ..utils.config import Config
+    from ..utils.file_handler import FileHandler
+except ImportError:
+    from utils.config import Config
+    from utils.file_handler import FileHandler
 
 class ASTGenerator:
     """Generates Abstract Syntax Tree from Solidity smart contracts"""

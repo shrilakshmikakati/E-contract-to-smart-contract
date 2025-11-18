@@ -6,7 +6,10 @@ import re
 from typing import Dict, Any, List, Optional, Tuple
 from .ast_generator import ASTGenerator
 from .grammar_engine import GrammarEngine
-from ..utils.file_handler import FileHandler
+try:
+    from ..utils.file_handler import FileHandler
+except ImportError:
+    from utils.file_handler import FileHandler
 
 class SolidityParser:
     """Parses Solidity smart contracts and converts them to human-readable descriptions"""

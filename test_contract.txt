@@ -1,43 +1,21 @@
-SAMPLE SERVICE AGREEMENT
+RENTAL AGREEMENT
 
-This Service Agreement is entered into on January 1, 2024 between Tech Solutions Inc. (Provider) and ABC Corporation (Client).
+This rental agreement is entered into on January 1, 2024, between John Smith (Owner) and Alice Johnson (Tenant).
 
-SERVICES PROVIDED:
-The Provider agrees to provide software development services including:
-- Web application development
-- Database design and implementation
-- System testing and quality assurance
-- Technical documentation
+PROPERTY: The property located at 123 Main Street, Anytown, USA shall be rented to the tenant.
 
-PAYMENT TERMS:
-- Hourly rate: $150 per hour
-- Total project amount: $50,000
-- Payment due within 30 days of invoice
-- Late payment penalty: 2% per month
+RENT: The monthly rent is $1,500 due on the 1st day of each month.
 
-PROJECT TIMELINE:
-- Start date: January 15, 2024
-- End date: June 15, 2024
-- Delivery milestones every 2 weeks
+SECURITY DEPOSIT: A security deposit of $1,500 is required before occupancy.
 
-INTELLECTUAL PROPERTY:
-All work products and intellectual property created shall be owned by the Client upon full payment.
+TERM: The lease term is 12 months starting January 1, 2024.
 
-CONFIDENTIALITY:
-Both parties agree to maintain strict confidentiality of proprietary information.
+MAINTENANCE: The tenant is responsible for minor maintenance. The owner handles major repairs.
 
-TERMINATION:
-Either party may terminate this agreement with 30 days written notice.
+UTILITIES: The tenant pays for electricity and water. The owner pays for garbage collection.
 
-WARRANTIES:
-Provider warrants that all services will be performed with professional competence and in accordance with industry standards.
+TERMINATION: Either party may terminate with 30 days written notice.
 
-LIABILITY:
-Provider's liability is limited to the total amount paid under this agreement.
-
-GOVERNING LAW:
-This agreement shall be governed by the laws of the State of California.
-
-Provider: Tech Solutions Inc.
-Client: ABC Corporation
-Date: January 1, 2024
+Signatures:
+John Smith - Owner
+Alice Johnson - Tenant

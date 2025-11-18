@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: MIT
+pragma solidity {{ compiler_version }};
+
+{% for import in imports %}
+{{ import }}
+{% endfor %}
+
+/**
+ * @title {{ contract_name }}
+ * @dev Auto-generated smart contract from E-Contract
+ * @notice Generated on {{ timestamp }}
+ */
+contract {{ contract_name }} {
+    
+    {% for struct in structs %}
+    struct {{ struct.name }} {
+        {% for field in struct.fields %}
+        {{ field }}
+        {% endfor %}
+    }
+    {% endfor %}
+    
+    // State Variables
+    {% for var in state_variables %}
+    {{ var.type }} {{ var.visibility }} {{ var.name }}{% if var.initial_value %} = {{ var.initial_value }}{% endif %}; // {{ var.description }}
+    {% endfor %}
+    
+    // Events
+    {% for event in events %}
+    event {{ event.name }}({% for param in event.parameters %}{{ param }}{% if not loop.last %}, {% endif %}{% endfor %});
+    {% endfor %}
+    
+    // Modifiers
+    {% for modifier in modifiers %}
+    modifier {{ modifier.name }}() {
+        {% for line in modifier.body %}
+        {{ line }}
+        {% endfor %}
+    }
+    {% endfor %}
+    
+    // Constructor
+    constructor({% for param in constructor.parameters %}{{ param }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+        {% for line in constructor.body %}
+        {{ line }}
+        {% endfor %}
+        
+        emit ContractCreated(msg.sender, block.timestamp);
+    }
+    
+    // Functions
+    {% for func in functions %}
+    /**
+     * @dev {{ func.description or 'Function: ' + func.name }}
+     */
+    function {{ func.name }}({% for param in func.parameters %}{{ param }}{% if not loop.last %}, {% endif %}{% endfor %}) 
+        {{ func.visibility }} 
+        {% for mod in func.modifiers %}{{ mod }} {% endfor %}
+        {% if func.returns %}returns ({{ func.returns }}) {% endif %}{
+        
+        {% for line in func.body %}
+        {{ line }}
+        {% endfor %}
+    }
+    {% endfor %}
+    
+    // Utility Functions
+    function getContractInfo() external view returns (
+        address contractOwner,
+        bool contractIsActive,
+        uint256 contractCreatedAt
+    ) {
+        return (owner, isActive, createdAt);
+    }
+    
+    // Emergency Functions
+    function pauseContract() external onlyOwner {
+        isActive = false;
+        emit ContractStatusChanged(false, block.timestamp);
+    }
+    
+    function resumeContract() external onlyOwner {
+        isActive = true;
+        emit ContractStatusChanged(true, block.timestamp);
+    }
+    
+    // Fallback function
+    receive() external payable {
+        // Handle incoming Ether
+    }
+}

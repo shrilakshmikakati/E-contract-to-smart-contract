@@ -6,13 +6,22 @@ from typing import Dict, Any, List, Optional
 import os
 from datetime import datetime
 
-from ..nlp.preprocessor import TextPreprocessor
-from ..nlp.entity_extractor import EntityExtractor
-from ..nlp.dependency_parser import DependencyParser
-from ..nlp.business_relationship_extractor import BusinessRelationshipExtractor
-from .knowledge_graph import KnowledgeGraph
-from ..utils.file_handler import FileHandler
-from ..utils.config import Config
+try:
+    from ..nlp.preprocessor import TextPreprocessor
+    from ..nlp.entity_extractor import EntityExtractor
+    from ..nlp.dependency_parser import DependencyParser
+    from ..nlp.business_relationship_extractor import BusinessRelationshipExtractor
+    from .knowledge_graph import KnowledgeGraph
+    from ..utils.file_handler import FileHandler
+    from ..utils.config import Config
+except ImportError:
+    from nlp.preprocessor import TextPreprocessor
+    from nlp.entity_extractor import EntityExtractor
+    from nlp.dependency_parser import DependencyParser
+    from nlp.business_relationship_extractor import BusinessRelationshipExtractor
+    from core.knowledge_graph import KnowledgeGraph
+    from utils.file_handler import FileHandler
+    from utils.config import Config
 
 class EContractProcessor:
     """

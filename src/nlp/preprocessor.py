@@ -26,7 +26,10 @@ except ImportError:
     SPACY_AVAILABLE = False
     print("spaCy not available, using basic preprocessing")
 
-from ..utils.config import Config
+try:
+    from ..utils.config import Config
+except ImportError:
+    from utils.config import Config
 
 class TextPreprocessor:
     """Handles text preprocessing for e-contract analysis"""

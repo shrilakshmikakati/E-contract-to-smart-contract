@@ -6,13 +6,22 @@ from typing import Dict, Any, List, Optional
 import os
 from datetime import datetime
 
-from ..blockchain.ast_generator import ASTGenerator
-from ..blockchain.solidity_parser import SolidityParser
-from ..blockchain.grammar_engine import GrammarEngine
-from .knowledge_graph import KnowledgeGraph
-from ..utils.file_handler import FileHandler
-from ..utils.config import Config
-from ..algorithms.accurate_contract_generator import AccurateSmartContractGenerator
+try:
+    from ..blockchain.ast_generator import ASTGenerator
+    from ..blockchain.solidity_parser import SolidityParser
+    from ..blockchain.grammar_engine import GrammarEngine
+    from .knowledge_graph import KnowledgeGraph
+    from ..utils.file_handler import FileHandler
+    from ..utils.config import Config
+    from ..realtime.smart_contract_generator import AccurateSmartContractGenerator
+except ImportError:
+    from blockchain.ast_generator import ASTGenerator
+    from blockchain.solidity_parser import SolidityParser
+    from blockchain.grammar_engine import GrammarEngine
+    from core.knowledge_graph import KnowledgeGraph
+    from utils.file_handler import FileHandler
+    from utils.config import Config
+    from realtime.smart_contract_generator import AccurateSmartContractGenerator
 
 class SmartContractProcessor:
     """

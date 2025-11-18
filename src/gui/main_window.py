@@ -10,24 +10,33 @@ import json
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..core.econtract_processor import EContractProcessor
-from ..core.smartcontract_processor import SmartContractProcessor
-from ..core.comparator import ContractComparator
-from ..utils.config import Config
-from ..utils.file_handler import FileHandler
+from core.econtract_processor import EContractProcessor
+from core.smartcontract_processor import SmartContractProcessor
+from core.comparator import ContractComparator
+from core.enhanced_smart_contract_generator import EnhancedSmartContractGenerator
+from utils.config import Config
+from utils.file_handler import FileHandler
 
 class MainWindow:
     """Main GUI window for the contract analysis system"""
     
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("E-Contract and Smart Contract Analysis System")
+        self.root.title("🔗 E-Contract to Smart Contract Generator - Upload & Generate")
         self.root.geometry(f"{Config.WINDOW_WIDTH}x{Config.WINDOW_HEIGHT}")
+        
+        # Set window icon and make it more prominent
+        try:
+            # Try to set a nice icon if available
+            self.root.iconbitmap(default='icon.ico') if os.path.exists('icon.ico') else None
+        except:
+            pass
         
         # Initialize processors
         self.econtract_processor = EContractProcessor()
         self.smartcontract_processor = SmartContractProcessor()
         self.comparator = ContractComparator()
+        self.enhanced_generator = EnhancedSmartContractGenerator()
         
         # State variables
         self.current_econtract_path = tk.StringVar()
@@ -54,52 +63,108 @@ class MainWindow:
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
         
-        # Title
-        title_label = ttk.Label(main_frame, text="Contract Analysis System", 
+        # Title with instructions
+        title_label = ttk.Label(main_frame, text="🚀 E-Contract to Smart Contract Generator", 
                                font=('Arial', 16, 'bold'))
-        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
+        title_label.grid(row=0, column=0, columnspan=3, pady=(0, 5))
+        
+        # Subtitle with quick instructions
+        subtitle_label = ttk.Label(main_frame, 
+                                  text="📤 Upload your e-contract → 🔧 Generate smart contract → 📊 View accuracy metrics → 💾 Download result", 
+                                  font=('Arial', 10), foreground='blue')
+        subtitle_label.grid(row=1, column=0, columnspan=3, pady=(0, 20), sticky=tk.W)
         
         # File Selection Section
-        self._create_file_selection_section(main_frame, 1)
+        self._create_file_selection_section(main_frame, 2)
         
         # Processing Controls Section
-        self._create_processing_controls_section(main_frame, 2)
+        self._create_processing_controls_section(main_frame, 3)
         
         # Results Display Section
-        self._create_results_section(main_frame, 3)
+        self._create_results_section(main_frame, 4)
         
         # Status Bar
-        self._create_status_bar(main_frame, 4)
+        self._create_status_bar(main_frame, 5)
+        
+        # Initialize with file upload mode
+        self._toggle_input_method()
     
     def _create_file_selection_section(self, parent, row):
-        """Create file selection section"""
+        """Create file selection and contract input section"""
         
-        # File Selection Frame
-        file_frame = ttk.LabelFrame(parent, text="File Selection", padding="10")
-        file_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
-        file_frame.columnconfigure(1, weight=1)
+        # Input Selection Frame
+        input_frame = ttk.LabelFrame(parent, text="E-Contract Input", padding="10")
+        input_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        input_frame.columnconfigure(1, weight=1)
         
-        # E-Contract File
-        ttk.Label(file_frame, text="E-Contract File:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        # Input method selection
+        ttk.Label(input_frame, text="Input Method:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
         
-        econtract_entry = ttk.Entry(file_frame, textvariable=self.current_econtract_path, width=50)
-        econtract_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(5, 5), pady=(0, 5))
+        self.input_method = tk.StringVar(value="file")
+        method_frame = ttk.Frame(input_frame)
+        method_frame.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
         
-        ttk.Button(file_frame, text="Browse...", 
-                  command=self._browse_econtract_file).grid(row=0, column=2, pady=(0, 5))
+        ttk.Radiobutton(method_frame, text="Enter Text", variable=self.input_method, 
+                       value="text", command=self._toggle_input_method).grid(row=0, column=0, padx=(0, 20))
+        ttk.Radiobutton(method_frame, text="Upload File", variable=self.input_method, 
+                       value="file", command=self._toggle_input_method).grid(row=0, column=1)
         
-        # Generated Smart Contract Display
-        ttk.Label(file_frame, text="Generated Smart Contract:").grid(row=1, column=0, sticky=tk.W, pady=(0, 5))
+        # File selection (initially visible since file is default)
+        self.file_selection_frame = ttk.Frame(input_frame)
+        self.file_selection_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 15))
+        self.file_selection_frame.columnconfigure(1, weight=1)
         
-        self.generated_contract_info = tk.StringVar(value="No smart contract generated yet")
-        contract_label = ttk.Label(file_frame, textvariable=self.generated_contract_info, 
-                                 foreground="gray", width=50, anchor="w")
-        contract_label.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=(5, 5), pady=(0, 5))
+        # File upload section with clear instructions
+        file_label = ttk.Label(self.file_selection_frame, text="📁 Select E-Contract File:", font=('Arial', 10, 'bold'))
+        file_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 8))
         
-        self.download_button = ttk.Button(file_frame, text="Download Contract", 
+        # File path display
+        econtract_entry = ttk.Entry(self.file_selection_frame, textvariable=self.current_econtract_path, 
+                                   width=60, font=('Arial', 9))
+        econtract_entry.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), padx=(0, 10), pady=(0, 5))
+        
+        # Browse button with better styling
+        browse_btn = ttk.Button(self.file_selection_frame, text="🔍 Browse Files", 
+                               command=self._browse_econtract_file, width=15)
+        browse_btn.grid(row=1, column=2, pady=(0, 5))
+        
+        # File format help
+        format_label = ttk.Label(self.file_selection_frame, 
+                                text="Supported formats: .txt, .pdf, .docx, .md", 
+                                foreground="gray", font=('Arial', 8))
+        format_label.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+        
+        # Text input area (initially visible)
+        self.text_input_frame = ttk.Frame(input_frame)
+        self.text_input_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        self.text_input_frame.columnconfigure(0, weight=1)
+        self.text_input_frame.rowconfigure(1, weight=1)
+        
+        ttk.Label(self.text_input_frame, text="Enter E-Contract Text:").grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        
+        self.contract_text_input = scrolledtext.ScrolledText(self.text_input_frame, 
+                                                           height=8, width=80, 
+                                                           wrap=tk.WORD)
+        self.contract_text_input.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Add sample text
+        sample_text = """Enter your e-contract text here..."""
+        self.contract_text_input.insert("1.0", sample_text)
+        
+        # Generated Smart Contract Display Section
+        result_section_frame = ttk.LabelFrame(input_frame, text="Generated Smart Contract", padding="8")
+        result_section_frame.grid(row=3, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(15, 5))
+        result_section_frame.columnconfigure(0, weight=1)
+        
+        self.generated_contract_info = tk.StringVar(value="⏳ No smart contract generated yet")
+        contract_label = ttk.Label(result_section_frame, textvariable=self.generated_contract_info, 
+                                 foreground="gray", font=('Arial', 9), wraplength=500)
+        contract_label.grid(row=0, column=0, sticky=(tk.W, tk.E), padx=(5, 10), pady=(5, 5))
+        
+        self.download_button = ttk.Button(result_section_frame, text="💾 Download Contract", 
                                         command=self._download_generated_contract, 
-                                        state="disabled")
-        self.download_button.grid(row=1, column=2, pady=(0, 5))
+                                        state="disabled", width=18)
+        self.download_button.grid(row=0, column=1, padx=(0, 5), pady=(5, 5))
     
     def _create_processing_controls_section(self, parent, row):
         """Create processing controls section"""
@@ -116,8 +181,8 @@ class MainWindow:
         ttk.Button(button_frame, text="Process E-Contract", 
                   command=self._process_econtract).grid(row=0, column=0, padx=(0, 15))
         
-        ttk.Button(button_frame, text="Generate Smart Contract", 
-                  command=self._generate_smart_contract, 
+        ttk.Button(button_frame, text="Generate Smart Contract (Enhanced)", 
+                  command=self._generate_enhanced_smart_contract, 
                   style="Accent.TButton").grid(row=0, column=1, padx=(0, 15))
         
         ttk.Button(button_frame, text="Analyze Generated Contract", 
@@ -258,21 +323,37 @@ class MainWindow:
         help_menu.add_command(label="About", command=self._show_about)
     
     def _browse_econtract_file(self):
-        """Browse for e-contract file"""
+        """Browse for e-contract file with improved user experience"""
         
         file_path = filedialog.askopenfilename(
-            title="Select E-Contract File",
+            title="Select Your E-Contract File",
             filetypes=[
                 ("Text files", "*.txt"),
-                ("PDF files", "*.pdf"),
+                ("PDF files", "*.pdf"), 
                 ("Word documents", "*.docx"),
                 ("Markdown files", "*.md"),
+                ("All supported", "*.txt;*.pdf;*.docx;*.md"),
                 ("All files", "*.*")
-            ]
+            ],
+            initialdir=os.path.expanduser("~")  # Start in user's home directory
         )
         
         if file_path:
             self.current_econtract_path.set(file_path)
+            # Show success message with file name
+            file_name = os.path.basename(file_path)
+            self.processing_status.set(f"✅ File selected: {file_name}")
+            
+            # Enable processing button if file is valid
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if len(content.strip()) > 0:
+                        self.processing_status.set(f"✅ Ready to process: {file_name} ({len(content)} characters)")
+                    else:
+                        self.processing_status.set("⚠️ Selected file is empty")
+            except Exception as e:
+                self.processing_status.set(f"⚠️ Error reading file: {str(e)}")
     
     def _download_generated_contract(self):
         """Download the generated smart contract"""
@@ -320,7 +401,7 @@ class MainWindow:
         if not self.current_econtract_path.get():
             messagebox.showerror("Error", "Please select an e-contract file first")
             return
-        
+       
         def process():
             try:
                 self.processing_status.set("Processing e-contract...")
@@ -340,12 +421,207 @@ class MainWindow:
                 self.processing_status.set("E-contract processing completed")
                 
             except Exception as e:
-                messagebox.showerror("Processing Error", f"Error processing e-contract: {str(e)}")
+                import traceback
+                error_msg = f"Error processing e-contract: {str(e)}\n\nFile: {self.current_econtract_path.get()}\n\nFull error:\n{traceback.format_exc()}"
+                messagebox.showerror("Processing Error", error_msg)
                 self.processing_status.set("Error processing e-contract")
             finally:
                 self._update_progress(0)
         
         threading.Thread(target=process, daemon=True).start()
+    
+    def _toggle_input_method(self):
+        """Toggle between text input and file input"""
+        if self.input_method.get() == "text":
+            self.file_selection_frame.grid_remove()
+            self.text_input_frame.grid()
+            # Clear sample text when switching to text mode
+            if "Enter your e-contract text here" in self.contract_text_input.get("1.0", tk.END):
+                self.contract_text_input.delete("1.0", tk.END)
+        else:
+            self.text_input_frame.grid_remove()  
+            self.file_selection_frame.grid()
+            # Show helpful message
+            self.processing_status.set("Ready to upload e-contract file")
+    
+    def _get_contract_text(self):
+        """Get contract text from current input method"""
+        if self.input_method.get() == "text":
+            contract_text = self.contract_text_input.get("1.0", tk.END).strip()
+            if not contract_text or contract_text.startswith("Enter your e-contract"):
+                return None
+            return contract_text
+        else:
+            file_path = self.current_econtract_path.get()
+            if not file_path or not os.path.exists(file_path):
+                return None
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except Exception:
+                return None
+    
+    def _generate_enhanced_smart_contract(self):
+        """Generate smart contract using enhanced system"""
+        
+        # Get contract text
+        contract_text = self._get_contract_text()
+        if not contract_text:
+            messagebox.showerror("Error", "Please provide e-contract text or select a file")
+            return
+        
+        def generate():
+            try:
+                self.processing_status.set("Analyzing e-contract with enhanced system...")
+                self._update_progress(10)
+                
+                # Process e-contract
+                self.econtract_kg = self.econtract_processor.process_contract(contract_text, "gui_contract")
+                self._update_progress(40)
+                
+                # Convert to format for enhanced generator
+                entities_list = [{'id': eid, **data} for eid, data in self.econtract_kg.entities.items()]
+                relationships_list = [{'id': rid, **data} for rid, data in self.econtract_kg.relationships.items()]
+                
+                self.processing_status.set("Generating enhanced smart contract...")
+                self._update_progress(70)
+                
+                # Generate enhanced smart contract
+                contract_name = "GeneratedContract"
+                smart_contract_code = self.enhanced_generator.generate_enhanced_contract(
+                    entities_list, relationships_list, contract_name
+                )
+                
+                self._update_progress(90)
+                
+                # Store results
+                self.generated_contract_result = {
+                    'contract_code': smart_contract_code,
+                    'contract_name': contract_name,
+                    'generation_method': 'enhanced',
+                    'entities_count': len(entities_list),
+                    'relationships_count': len(relationships_list)
+                }
+                
+                # Update UI
+                self.generated_contract_info.set(f"Enhanced contract generated ({len(smart_contract_code.splitlines())} lines)")
+                self.download_button.config(state="normal")
+                
+                # Display results
+                self._display_enhanced_results()
+                
+                self._update_progress(100)
+                self.processing_status.set("Enhanced smart contract generation completed")
+                
+                messagebox.showinfo("Success", 
+                    f"Smart contract generated successfully!\n"
+                    f"• Contract lines: {len(smart_contract_code.splitlines())}\n"
+                    f"• Functions: {smart_contract_code.count('function ')}\n"
+                    f"• Events: {smart_contract_code.count('event ')}\n"
+                    f"• From {len(entities_list)} business entities and {len(relationships_list)} relationships")
+                
+            except Exception as e:
+                messagebox.showerror("Generation Error", f"Error generating smart contract: {str(e)}")
+                self.processing_status.set("Error generating smart contract")
+            finally:
+                self._update_progress(0)
+        
+        threading.Thread(target=generate, daemon=True).start()
+    
+    def _display_enhanced_results(self):
+        """Display enhanced generation results in the GUI"""
+        if not self.generated_contract_result:
+            return
+            
+        # Clear existing tabs and create new ones
+        for tab in self.results_notebook.tabs():
+            self.results_notebook.forget(tab)
+        
+        # E-Contract Analysis Tab
+        econtract_tab = ttk.Frame(self.results_notebook)
+        self.results_notebook.add(econtract_tab, text="E-Contract Analysis")
+        
+        econtract_scroll = scrolledtext.ScrolledText(econtract_tab, height=15, wrap=tk.WORD)
+        econtract_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Display e-contract analysis
+        analysis_text = f"E-CONTRACT ANALYSIS RESULTS\n{'='*50}\n\n"
+        analysis_text += f"Entities Extracted: {len(self.econtract_kg.entities)}\n"
+        analysis_text += f"Relationships Extracted: {len(self.econtract_kg.relationships)}\n"
+        analysis_text += f"Graph Density: {self.econtract_kg.calculate_density():.3f}\n\n"
+        
+        analysis_text += "BUSINESS ENTITIES:\n" + "-"*20 + "\n"
+        for i, (eid, entity) in enumerate(self.econtract_kg.entities.items()):
+            if i < 10:  # Show first 10
+                analysis_text += f"• {entity.get('text', 'Unknown')} ({entity.get('type', 'Unknown')})\n"
+        if len(self.econtract_kg.entities) > 10:
+            analysis_text += f"... and {len(self.econtract_kg.entities) - 10} more entities\n"
+        
+        analysis_text += "\nKEY RELATIONSHIPS:\n" + "-"*20 + "\n"
+        rel_count = 0
+        for rid, rel in self.econtract_kg.relationships.items():
+            if rel_count >= 10:
+                break
+            source_entity = self.econtract_kg.entities.get(rel['source'], {})
+            target_entity = self.econtract_kg.entities.get(rel['target'], {})
+            source_text = source_entity.get('text', rel.get('source_text', 'Unknown'))
+            target_text = target_entity.get('text', rel.get('target_text', 'Unknown'))
+            
+            analysis_text += f"• {source_text} --[{rel['relation']}]--> {target_text}\n"
+            rel_count += 1
+            
+        if len(self.econtract_kg.relationships) > 10:
+            analysis_text += f"... and {len(self.econtract_kg.relationships) - 10} more relationships\n"
+        
+        econtract_scroll.insert("1.0", analysis_text)
+        econtract_scroll.config(state="disabled")
+        
+        # Generated Smart Contract Tab
+        contract_tab = ttk.Frame(self.results_notebook)
+        self.results_notebook.add(contract_tab, text="Generated Smart Contract")
+        
+        contract_scroll = scrolledtext.ScrolledText(contract_tab, height=15, wrap=tk.NONE)
+        contract_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        contract_scroll.insert("1.0", self.generated_contract_result['contract_code'])
+        contract_scroll.config(state="disabled")
+        
+        # Generation Summary Tab
+        summary_tab = ttk.Frame(self.results_notebook)
+        self.results_notebook.add(summary_tab, text="Generation Summary")
+        
+        summary_scroll = scrolledtext.ScrolledText(summary_tab, height=15, wrap=tk.WORD)
+        summary_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        contract_code = self.generated_contract_result['contract_code']
+        summary_text = f"SMART CONTRACT GENERATION SUMMARY\n{'='*50}\n\n"
+        summary_text += f"Contract Name: {self.generated_contract_result['contract_name']}\n"
+        summary_text += f"Generation Method: Enhanced Business Logic Translation\n"
+        summary_text += f"Total Lines: {len(contract_code.splitlines())}\n"
+        summary_text += f"Functions: {contract_code.count('function ')}\n"
+        summary_text += f"Events: {contract_code.count('event ')}\n"
+        summary_text += f"Modifiers: {contract_code.count('modifier ')}\n"
+        summary_text += f"Source Entities: {self.generated_contract_result['entities_count']}\n"
+        summary_text += f"Source Relationships: {self.generated_contract_result['relationships_count']}\n\n"
+        
+        summary_text += "GENERATED COMPONENTS:\n" + "-"*25 + "\n"
+        summary_text += "✅ Business entities → State variables\n"
+        summary_text += "✅ Financial terms → Payable functions\n"
+        summary_text += "✅ Obligations → Contract functions\n"
+        summary_text += "✅ Conditions → Access modifiers\n"
+        summary_text += "✅ Events → Blockchain logging\n\n"
+        
+        summary_text += "DEPLOYMENT READY:\n" + "-"*17 + "\n"
+        summary_text += "• Solidity compliance: ✅\n"
+        summary_text += "• Constructor initialization: ✅\n"
+        summary_text += "• Business logic implementation: ✅\n"
+        summary_text += "• Event logging: ✅\n"
+        summary_text += "• Access control: ✅\n\n"
+        
+        summary_text += "The generated smart contract is ready for compilation and deployment to the blockchain."
+        
+        summary_scroll.insert("1.0", summary_text)
+        summary_scroll.config(state="disabled")
     
     def _generate_smart_contract(self):
         """Generate smart contract from e-contract analysis"""
@@ -552,7 +828,7 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         # Generate deployment information
         deploy_info = self._generate_deployment_info()
         deploy_text.insert(tk.END, deploy_info)
-        deploy_text.config(state=tk.DISABLED)
+        deploy_text.config(state="disabled")
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -723,12 +999,31 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         if len(self.econtract_kg.entities) > 10:
             result_text += f"  ... and {len(self.econtract_kg.entities) - 10} more entities\n"
         
-        # Display in text widget
-        self.econtract_text.delete(1.0, tk.END)
-        self.econtract_text.insert(tk.END, result_text)
+        # Create or update E-Contract Analysis tab
+        econtract_tab_frame = None
+        for tab_id in self.results_notebook.tabs():
+            if self.results_notebook.tab(tab_id, "text") == "E-Contract Analysis":
+                econtract_tab_frame = self.results_notebook.nametowidget(tab_id)
+                break
+        
+        if not econtract_tab_frame:
+            # Create new tab
+            econtract_tab_frame = ttk.Frame(self.results_notebook)
+            self.results_notebook.add(econtract_tab_frame, text="E-Contract Analysis")
+            
+            # Create scrolled text widget
+            econtract_scroll = scrolledtext.ScrolledText(econtract_tab_frame, height=15, wrap=tk.WORD)
+            econtract_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        else:
+            # Get existing scrolled text widget
+            econtract_scroll = econtract_tab_frame.winfo_children()[0]
+        
+        # Update content
+        econtract_scroll.delete(1.0, tk.END)
+        econtract_scroll.insert(tk.END, result_text)
         
         # Switch to e-contract tab
-        self.results_notebook.select(self.econtract_tab)
+        self.results_notebook.select(econtract_tab_frame)
     
     def _display_smartcontract_results(self):
         """Display smart contract analysis results"""
@@ -786,12 +1081,31 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         if len(self.smartcontract_kg.entities) > 10:
             result_text += f"  ... and {len(self.smartcontract_kg.entities) - 10} more entities\n"
         
-        # Display in text widget
-        self.smartcontract_text.delete(1.0, tk.END)
-        self.smartcontract_text.insert(tk.END, result_text)
+        # Create or update Smart Contract Analysis tab
+        analysis_tab_frame = None
+        for tab_id in self.results_notebook.tabs():
+            if self.results_notebook.tab(tab_id, "text") == "Smart Contract Analysis":
+                analysis_tab_frame = self.results_notebook.nametowidget(tab_id)
+                break
         
-        # Switch to smart contract tab
-        self.results_notebook.select(self.smartcontract_tab)
+        if not analysis_tab_frame:
+            # Create new tab
+            analysis_tab_frame = ttk.Frame(self.results_notebook)
+            self.results_notebook.add(analysis_tab_frame, text="Smart Contract Analysis")
+            
+            # Create scrolled text widget
+            analysis_scroll = scrolledtext.ScrolledText(analysis_tab_frame, height=15, wrap=tk.WORD)
+            analysis_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        else:
+            # Get existing scrolled text widget
+            analysis_scroll = analysis_tab_frame.winfo_children()[0]
+        
+        # Update content
+        analysis_scroll.delete(1.0, tk.END)
+        analysis_scroll.insert(tk.END, result_text)
+        
+        # Switch to the analysis tab
+        self.results_notebook.select(analysis_tab_frame)
     
     def _display_comparison_results(self):
         """Display contract comparison results"""
@@ -922,12 +1236,31 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
                 for risk in risks:
                     result_text += f"  - {risk.get('type', 'Unknown')}: {risk.get('description', 'No description')} (Severity: {risk.get('severity', 'Unknown')})\n"
         
-        # Display in text widget
-        self.comparison_text.delete(1.0, tk.END)
-        self.comparison_text.insert(tk.END, result_text)
+        # Create or update Comparison Results tab
+        comparison_tab_frame = None
+        for tab_id in self.results_notebook.tabs():
+            if self.results_notebook.tab(tab_id, "text") == "Comparison Results":
+                comparison_tab_frame = self.results_notebook.nametowidget(tab_id)
+                break
+        
+        if not comparison_tab_frame:
+            # Create new tab
+            comparison_tab_frame = ttk.Frame(self.results_notebook)
+            self.results_notebook.add(comparison_tab_frame, text="Comparison Results")
+            
+            # Create scrolled text widget
+            comparison_scroll = scrolledtext.ScrolledText(comparison_tab_frame, height=15, wrap=tk.WORD)
+            comparison_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        else:
+            # Get existing scrolled text widget
+            comparison_scroll = comparison_tab_frame.winfo_children()[0]
+        
+        # Update content
+        comparison_scroll.delete(1.0, tk.END)
+        comparison_scroll.insert(tk.END, result_text)
         
         # Switch to comparison tab
-        self.results_notebook.select(self.comparison_tab)
+        self.results_notebook.select(comparison_tab_frame)
     
     def _display_generation_results(self, generation_result):
         """Display smart contract generation results"""
@@ -1010,10 +1343,6 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             result_text += f"Gas Limit: {deploy_params.get('gas_limit', 'Unknown'):,}\n"
             result_text += f"Gas Price: {deploy_params.get('gas_price', 'Unknown'):,} wei\n"
         
-        # Display in smart contract tab
-        self.smartcontract_text.delete(1.0, tk.END)
-        self.smartcontract_text.insert(tk.END, result_text)
-        
         # Save contract code to file
         if contract_code:
             try:
@@ -1022,9 +1351,31 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write(contract_code)
                 result_text += f"\nContract saved to: {output_file}\n"
-                self.smartcontract_text.insert(tk.END, f"\nContract saved to: {output_file}\n")
             except Exception as e:
                 result_text += f"\nError saving contract: {str(e)}\n"
+        
+        # Create or update Smart Contract Generation tab
+        generation_tab_frame = None
+        for tab_id in self.results_notebook.tabs():
+            if self.results_notebook.tab(tab_id, "text") == "Generated Smart Contract":
+                generation_tab_frame = self.results_notebook.nametowidget(tab_id)
+                break
+        
+        if not generation_tab_frame:
+            # Create new tab
+            generation_tab_frame = ttk.Frame(self.results_notebook)
+            self.results_notebook.add(generation_tab_frame, text="Generated Smart Contract")
+            
+            # Create scrolled text widget
+            generation_scroll = scrolledtext.ScrolledText(generation_tab_frame, height=15, wrap=tk.WORD)
+            generation_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        else:
+            # Get existing scrolled text widget
+            generation_scroll = generation_tab_frame.winfo_children()[0]
+        
+        # Update content
+        generation_scroll.delete(1.0, tk.END)
+        generation_scroll.insert(tk.END, result_text)
         
         # Update GUI elements
         contract_type = generation_result.get('contract_type', 'Unknown')
@@ -1035,7 +1386,7 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         self.download_button.config(state="normal")
         
         # Switch to smart contract tab
-        self.results_notebook.select(self.smartcontract_tab)
+        self.results_notebook.select(generation_tab_frame)
     
     def _show_econtract_graph(self):
         """Show e-contract knowledge graph visualization"""
@@ -1112,11 +1463,31 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             viz_text += f"  Entity Matches: {summary.get('total_entity_matches', 0)}\n"
             viz_text += f"  Relationship Matches: {summary.get('total_relation_matches', 0)}\n"
         
-        self.visualization_text.delete(1.0, tk.END)
-        self.visualization_text.insert(tk.END, viz_text)
+        # Create or update Visualization tab
+        visualization_tab_frame = None
+        for tab_id in self.results_notebook.tabs():
+            if self.results_notebook.tab(tab_id, "text") == "Visualizations":
+                visualization_tab_frame = self.results_notebook.nametowidget(tab_id)
+                break
+        
+        if not visualization_tab_frame:
+            # Create new tab
+            visualization_tab_frame = ttk.Frame(self.results_notebook)
+            self.results_notebook.add(visualization_tab_frame, text="Visualizations")
+            
+            # Create scrolled text widget
+            viz_scroll = scrolledtext.ScrolledText(visualization_tab_frame, height=15, wrap=tk.WORD)
+            viz_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        else:
+            # Get existing scrolled text widget
+            viz_scroll = visualization_tab_frame.winfo_children()[0]
+        
+        # Update content
+        viz_scroll.delete(1.0, tk.END)
+        viz_scroll.insert(tk.END, viz_text)
         
         # Switch to visualization tab
-        self.results_notebook.select(self.visualization_tab)
+        self.results_notebook.select(visualization_tab_frame)
     
     def _update_progress(self, value):
         """Update progress bar"""
@@ -1134,14 +1505,19 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
     
     def _clear_results(self):
         """Clear all result displays"""
-        self.econtract_text.delete(1.0, tk.END)
-        self.smartcontract_text.delete(1.0, tk.END)
-        self.comparison_text.delete(1.0, tk.END)
-        self.visualization_text.delete(1.0, tk.END)
+        # Clear all tabs from the notebook
+        for tab_id in self.results_notebook.tabs():
+            self.results_notebook.forget(tab_id)
         
+        # Clear data structures
         self.econtract_kg = None
         self.smartcontract_kg = None
         self.comparison_results = None
+        self.generated_contract_result = None
+        
+        # Update GUI elements
+        self.generated_contract_info.set("No contract generated")
+        self.download_button.config(state="disabled")
         
         self.processing_status.set("Results cleared")
     

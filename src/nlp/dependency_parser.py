@@ -14,7 +14,10 @@ try:
 except ImportError:
     SPACY_AVAILABLE = False
 
-from ..utils.config import Config
+try:
+    from ..utils.config import Config
+except ImportError:
+    from utils.config import Config
 
 class DependencyParser:
     """Extracts relationships and dependencies from contract text"""
