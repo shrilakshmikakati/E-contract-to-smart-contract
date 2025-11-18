@@ -34,7 +34,7 @@ def test_smart_contract_generation():
         # Step 1: Process e-contract
         print("Step 1: Processing e-contract...")
         econtract_processor = EContractProcessor()
-        econtract_kg = econtract_processor.process_contract_text(sample_contract)
+        econtract_kg = econtract_processor.process_contract(sample_contract)
         
         if econtract_kg and econtract_kg.entities:
             print(f"✓ E-contract processed successfully!")

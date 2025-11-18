@@ -48,10 +48,15 @@ class TextPreprocessor:
                 self.nlp = spacy.load(Config.NLP_MODEL)
                 print(f"✓ Loaded spaCy model: {Config.NLP_MODEL}")
             except OSError:
-                print(f"spaCy model {Config.NLP_MODEL} not found. Using fallback processing.")
+                # Only show warning once per class
+                if not hasattr(TextPreprocessor, '_spacy_warning_shown'):
+                    print(f"⚠️  spaCy model {Config.NLP_MODEL} not found. Using fallback processing.")
+                    TextPreprocessor._spacy_warning_shown = True
                 self.nlp = None
         else:
-            print("spaCy not available. Using fallback processing.")
+            if not hasattr(TextPreprocessor, '_spacy_unavailable_shown'):
+                print("⚠️  spaCy not available. Using fallback processing.")
+                TextPreprocessor._spacy_unavailable_shown = True
         
         # Setup NLTK components
         if self.nltk_available:

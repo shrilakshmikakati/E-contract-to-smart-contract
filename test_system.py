@@ -107,8 +107,8 @@ def test_sample_files():
                 content = f.read()
             
             # Basic processing test
-            result = processor.process_contract_content(content)
-            print(f"✓ E-contract processing: Generated {result['knowledge_graph'].get_node_count()} graph nodes")
+            result = processor.process_contract(content)
+            print(f\"✓ E-contract processing: Generated {result['knowledge_graph'].get_node_count()} graph nodes\")
             
         else:
             print(f"✗ Sample e-contract not found: {econtract_file}")
@@ -124,8 +124,8 @@ def test_sample_files():
                 content = f.read()
             
             # Basic processing test
-            result = processor.process_contract_content(content)
-            print(f"✓ Smart contract processing: Generated {result['knowledge_graph'].get_node_count()} graph nodes")
+            result = processor.process_contract(content)
+            print(f\"✓ Smart contract processing: Generated {result['knowledge_graph'].get_node_count()} graph nodes\")
             
         else:
             print(f"✗ Sample smart contract not found: {smartcontract_file}")

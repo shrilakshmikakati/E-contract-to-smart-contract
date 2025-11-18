@@ -397,18 +397,15 @@ class MainWindow:
                 # Display generation results
                 self._display_generation_results(generation_result)
                 
-                # If accuracy is high enough, store as smart contract knowledge graph
-                if generation_result.get('deployment_ready', False):
-                    self.smartcontract_kg = generation_result.get('knowledge_graph')
-                    messagebox.showinfo("Success", 
-                        f"Smart contract generated successfully!\n"
-                        f"Accuracy Score: {generation_result.get('accuracy_score', 0):.2%}\n"
-                        f"Ready for deployment: {generation_result.get('deployment_ready', False)}")
-                else:
-                    messagebox.showwarning("Generation Warning", 
-                        f"Smart contract generated with accuracy: {generation_result.get('accuracy_score', 0):.2%}\n"
-                        f"Please review before deployment.\n"
-                        f"Recommendations: {', '.join(generation_result.get('recommendations', []))}")
+                # Store generated smart contract knowledge graph
+                self.smartcontract_kg = generation_result.get('knowledge_graph')
+                
+                # Display success message without accuracy (show code first)
+                messagebox.showinfo("Success", 
+                    f"Smart contract generated successfully!\n"
+                    f"Contract Type: {generation_result.get('contract_type', 'Unknown')}\n"
+                    f"Ready for deployment: {generation_result.get('deployment_ready', False)}\n\n"
+                    f"Use 'Compare Contracts' to see accuracy analysis.")
                 
                 self._update_progress(100)
                 self.processing_status.set("Smart contract generation completed")
@@ -439,7 +436,7 @@ class MainWindow:
                 self._update_progress(10)
                 
                 # Process the generated contract through analysis
-                self.smartcontract_kg = self.smartcontract_processor.process_contract_content(contract_code)
+                self.smartcontract_kg = self.smartcontract_processor.process_contract(contract_code)
                 
                 self._update_progress(80)
                 
@@ -478,7 +475,7 @@ class MainWindow:
                 # Ensure we have the smart contract knowledge graph
                 if not self.smartcontract_kg:
                     contract_code = self.generated_contract_result.get('contract_code', '')
-                    self.smartcontract_kg = self.smartcontract_processor.process_contract_content(contract_code)
+                    self.smartcontract_kg = self.smartcontract_processor.process_contract(contract_code)
                 
                 self._update_progress(40)
                 
@@ -802,10 +799,49 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         if not self.comparison_results:
             return
         
-        # Build display text
-        result_text = "=== CONTRACT COMPARISON RESULTS ===\n\n"
+        # Build display text with accuracy first
+        result_text = "=== CONTRACT COMPARISON & ACCURACY ANALYSIS ===\n\n"
         
-        # Summary
+        # ACCURACY ANALYSIS (show first as requested)
+        if hasattr(self, 'generated_contract_result') and self.generated_contract_result:
+            accuracy_score = self.generated_contract_result.get('accuracy_score', 0)
+            deployment_ready = self.generated_contract_result.get('deployment_ready', False)
+            
+            result_text += "📊 ACCURACY ANALYSIS:\n"
+            result_text += "=" * 30 + "\n"
+            result_text += f"Smart Contract Generation Accuracy: {accuracy_score:.2%}\n"
+            result_text += f"Deployment Ready: {'✅ Yes' if deployment_ready else '⚠️ No'}\n"
+            
+            # Accuracy interpretation
+            if accuracy_score >= 0.95:
+                result_text += "📈 Interpretation: EXCELLENT - Ready for production deployment\n"
+            elif accuracy_score >= 0.85:
+                result_text += "📊 Interpretation: GOOD - Minor review recommended\n"
+            elif accuracy_score >= 0.70:
+                result_text += "📉 Interpretation: FAIR - Review and refinement needed\n"
+            else:
+                result_text += "⚠️ Interpretation: LOW - Significant improvements required\n"
+            
+            result_text += "\n"
+        
+        # Knowledge Graph Comparison
+        if self.econtract_kg and self.smartcontract_kg:
+            e_entities = len(self.econtract_kg.entities)
+            e_relationships = len(self.econtract_kg.relationships)
+            s_entities = len(self.smartcontract_kg.entities)
+            s_relationships = len(self.smartcontract_kg.relationships)
+            
+            entity_preservation = (min(e_entities, s_entities) / max(e_entities, 1)) if e_entities > 0 else 0
+            relationship_preservation = (min(e_relationships, s_relationships) / max(e_relationships, 1)) if e_relationships > 0 else 0
+            
+            result_text += "🔍 KNOWLEDGE GRAPH COMPARISON:\n"
+            result_text += "=" * 35 + "\n"
+            result_text += f"E-Contract: {e_entities} entities, {e_relationships} relationships\n"
+            result_text += f"Smart Contract: {s_entities} entities, {s_relationships} relationships\n"
+            result_text += f"Entity Preservation: {entity_preservation:.2%}\n"
+            result_text += f"Relationship Preservation: {relationship_preservation:.2%}\n\n"
+        
+        # Detailed Comparison Summary
         summary = self.comparison_results.get('summary', {})
         result_text += "COMPARISON SUMMARY:\n"
         result_text += f"Overall Similarity Score: {summary.get('overall_similarity_score', 0):.3f}\n"
@@ -902,40 +938,38 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         # Build display text
         result_text = "=== SMART CONTRACT GENERATION RESULTS ===\n\n"
         
-        # Generation Summary
+        # Generation Summary (accuracy removed - shown only in comparison)
         result_text += "GENERATION SUMMARY:\n"
         result_text += f"Contract Type: {generation_result.get('contract_type', 'Unknown')}\n"
-        result_text += f"Accuracy Score: {generation_result.get('accuracy_score', 0):.2%}\n"
         result_text += f"Deployment Ready: {'Yes' if generation_result.get('deployment_ready', False) else 'No'}\n"
         result_text += f"Generated At: {generation_result.get('generated_at', 'Unknown')}\n"
         result_text += f"Source Hash: {generation_result.get('source_hash', 'Unknown')}\n\n"
+        result_text += "📊 Use 'Compare Contracts' to view accuracy analysis.\n\n"
         
-        # Validation Results
+        # Contract Code (show first, before any analysis)
+        contract_code = generation_result.get('contract_code', '')
+        if contract_code:
+            result_text += "GENERATED SMART CONTRACT CODE:\n"
+            result_text += "=" * 40 + "\n"
+            result_text += contract_code + "\n"
+            result_text += "=" * 40 + "\n\n"
+        
+        # Basic Validation (no accuracy scores)
         validation = generation_result.get('validation_results', {})
-        result_text += "VALIDATION RESULTS:\n"
-        result_text += f"Overall Accuracy: {validation.get('overall_accuracy', 0):.2%}\n"
-        result_text += f"Is Accurate: {'Yes' if validation.get('is_accurate', False) else 'No'}\n"
-        
-        # Individual validation scores
-        for check_name, check_result in validation.items():
-            if isinstance(check_result, dict) and 'score' in check_result:
-                result_text += f"  {check_name.replace('_', ' ').title()}: {check_result['score']:.2%}\n"
-                if check_result.get('issues'):
-                    for issue in check_result['issues']:
-                        result_text += f"    - {issue}\n"
+        result_text += "BASIC VALIDATION:\n"
+        result_text += f"Contract Valid: {'Yes' if validation.get('is_accurate', False) else 'No'}\n"
+        result_text += f"Compilation Status: {'Success' if validation.get('compilation_successful', False) else 'With Warnings'}\n"
         
         result_text += "\n"
         
-        # Security Analysis
+        # Security Analysis (basic info only)
         security = validation.get('security_analysis', {})
         if security:
-            result_text += "SECURITY ANALYSIS:\n"
-            result_text += f"Security Score: {security.get('score', 0):.2%}\n"
-            result_text += f"Is Secure: {'Yes' if security.get('secure', False) else 'No'}\n"
-            if security.get('issues'):
-                result_text += "Security Issues:\n"
-                for issue in security['issues']:
-                    result_text += f"  - {issue}\n"
+            result_text += "SECURITY STATUS:\n"
+            result_text += f"Security Check: {'Passed' if security.get('secure', False) else 'Needs Review'}\n"
+            critical_issues = [issue for issue in security.get('issues', []) if 'critical' in issue.lower() or 'high' in issue.lower()]
+            if critical_issues:
+                result_text += f"Critical Issues Found: {len(critical_issues)}\n"
             result_text += "\n"
         
         # Gas Estimation

@@ -503,3 +503,9 @@ class KnowledgeGraph:
         results.sort(key=lambda x: x['relevance_score'], reverse=True)
         
         return results
+    
+    def calculate_density(self) -> float:
+        """Calculate graph density (0.0 to 1.0)"""
+        if len(self.graph) == 0:
+            return 0.0
+        return nx.density(self.graph)

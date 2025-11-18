@@ -9,6 +9,7 @@ from datetime import datetime
 from ..nlp.preprocessor import TextPreprocessor
 from ..nlp.entity_extractor import EntityExtractor
 from ..nlp.dependency_parser import DependencyParser
+from ..nlp.business_relationship_extractor import BusinessRelationshipExtractor
 from .knowledge_graph import KnowledgeGraph
 from ..utils.file_handler import FileHandler
 from ..utils.config import Config
@@ -23,6 +24,7 @@ class EContractProcessor:
         self.preprocessor = TextPreprocessor()
         self.entity_extractor = EntityExtractor()
         self.dependency_parser = DependencyParser()
+        self.business_relationship_extractor = BusinessRelationshipExtractor()
         self.processed_contracts = {}
     
     def process_contract(self, contract_text: str, contract_id: str = None) -> KnowledgeGraph:
@@ -51,9 +53,18 @@ class EContractProcessor:
         
         # Step 3: Extract relations (E_e ← ExtractRelations(T'_e))
         print("Step 3: Extracting relationships...")
-        relationships = self.dependency_parser.extract_all_relationships(
+        # Use enhanced business relationship extractor
+        relationships = self.business_relationship_extractor.extract_business_relationships(
             preprocessed_data['cleaned_text'], entities
         )
+        
+        # Fallback to dependency parser if business extractor returns few relationships
+        if len(relationships) < 3:
+            print("Step 3b: Adding dependency-based relationships...")
+            dependency_relationships = self.dependency_parser.extract_all_relationships(
+                preprocessed_data['cleaned_text'], entities
+            )
+            relationships.extend(dependency_relationships)
         
         # Step 4: Construct knowledge graph (G_e ← (V_e, E_e))
         print("Step 4: Constructing knowledge graph...")
@@ -110,9 +121,18 @@ class EContractProcessor:
         
         # Add relationships to the graph
         for relationship in relationships:
-            # Find source and target entities
-            source_entity = self._find_entity_by_text(entities, relationship.get('source', ''))
-            target_entity = self._find_entity_by_text(entities, relationship.get('target', ''))
+            # Check if relationship already has entity IDs
+            source_id = relationship.get('source')
+            target_id = relationship.get('target')
+            
+            # If source/target are already entity IDs, use them directly
+            if source_id in [e['id'] for e in entities] and target_id in [e['id'] for e in entities]:
+                source_entity = next(e for e in entities if e['id'] == source_id)
+                target_entity = next(e for e in entities if e['id'] == target_id)
+            else:
+                # Otherwise, find entities by text
+                source_entity = self._find_entity_by_text(entities, relationship.get('source', ''))
+                target_entity = self._find_entity_by_text(entities, relationship.get('target', ''))
             
             if source_entity and target_entity:
                 rel_data = {
@@ -121,7 +141,8 @@ class EContractProcessor:
                     'sentence': relationship.get('sentence', ''),
                     'pattern': relationship.get('pattern', ''),
                     'source_type': source_entity.get('label', 'UNKNOWN'),
-                    'target_type': target_entity.get('label', 'UNKNOWN')
+                    'target_type': target_entity.get('label', 'UNKNOWN'),
+                    'extraction_method': relationship.get('extraction_method', 'unknown')
                 }
                 
                 kg.add_relationship(
