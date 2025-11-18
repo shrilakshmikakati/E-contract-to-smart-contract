@@ -711,8 +711,14 @@ class MainWindow:
                 self.processing_status.set("Analyzing generated smart contract...")
                 self._update_progress(10)
                 
-                # Process the generated contract through analysis
-                self.smartcontract_kg = self.smartcontract_processor.process_contract(contract_code)
+                # Try to process the generated contract through analysis
+                try:
+                    self.smartcontract_kg = self.smartcontract_processor.process_contract(contract_code)
+                except Exception as compiler_error:
+                    # If compiler analysis fails, use fallback text-based analysis
+                    print(f"Compiler analysis failed: {compiler_error}")
+                    print("Using fallback text-based analysis...")
+                    self.smartcontract_kg = self._analyze_contract_text_fallback(contract_code)
                 
                 self._update_progress(80)
                 
@@ -731,6 +737,105 @@ class MainWindow:
                 self._update_progress(0)
         
         threading.Thread(target=analyze, daemon=True).start()
+    
+    def _analyze_contract_text_fallback(self, contract_code: str):
+        """Fallback text-based analysis when compiler is not available"""
+        from core.knowledge_graph import KnowledgeGraph
+        import re
+        
+        # Create a basic knowledge graph
+        kg = KnowledgeGraph(f"smart_contract_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+        
+        # Extract basic Solidity constructs using regex
+        entities = []
+        relationships = []
+        
+        # Extract contract names
+        contract_matches = re.findall(r'contract\s+(\w+)', contract_code)
+        for i, contract_name in enumerate(contract_matches):
+            entity_id = f"contract_{i}"
+            entities.append({
+                'id': entity_id,
+                'text': contract_name,
+                'type': 'CONTRACT',
+                'category': 'STRUCTURE',
+                'position': {'start': 0, 'end': len(contract_name)}
+            })
+            kg.add_entity(entity_id, contract_name, 'CONTRACT', category='STRUCTURE')
+        
+        # Extract function names
+        function_matches = re.findall(r'function\s+(\w+)', contract_code)
+        for i, function_name in enumerate(function_matches):
+            entity_id = f"function_{i}"
+            entities.append({
+                'id': entity_id,
+                'text': function_name,
+                'type': 'FUNCTION',
+                'category': 'BEHAVIOR',
+                'position': {'start': 0, 'end': len(function_name)}
+            })
+            kg.add_entity(entity_id, function_name, 'FUNCTION', category='BEHAVIOR')
+        
+        # Extract variable declarations
+        var_matches = re.findall(r'(?:uint256|string|address|bool|mapping)\s+(?:public\s+)?(\w+)', contract_code)
+        for i, var_name in enumerate(var_matches):
+            entity_id = f"variable_{i}"
+            entities.append({
+                'id': entity_id,
+                'text': var_name,
+                'type': 'STATE_VARIABLE',
+                'category': 'DATA',
+                'position': {'start': 0, 'end': len(var_name)}
+            })
+            kg.add_entity(entity_id, var_name, 'STATE_VARIABLE', category='DATA')
+        
+        # Extract events
+        event_matches = re.findall(r'event\s+(\w+)', contract_code)
+        for i, event_name in enumerate(event_matches):
+            entity_id = f"event_{i}"
+            entities.append({
+                'id': entity_id,
+                'text': event_name,
+                'type': 'EVENT',
+                'category': 'BEHAVIOR',
+                'position': {'start': 0, 'end': len(event_name)}
+            })
+            kg.add_entity(entity_id, event_name, 'EVENT', category='BEHAVIOR')
+        
+        # Extract modifiers
+        modifier_matches = re.findall(r'modifier\s+(\w+)', contract_code)
+        for i, modifier_name in enumerate(modifier_matches):
+            entity_id = f"modifier_{i}"
+            entities.append({
+                'id': entity_id,
+                'text': modifier_name,
+                'type': 'MODIFIER',
+                'category': 'BEHAVIOR',
+                'position': {'start': 0, 'end': len(modifier_name)}
+            })
+            kg.add_entity(entity_id, modifier_name, 'MODIFIER', category='BEHAVIOR')
+        
+        # Add some basic relationships
+        if contract_matches and function_matches:
+            for i, function_name in enumerate(function_matches):
+                for j, contract_name in enumerate(contract_matches):
+                    rel_id = f"contains_{i}_{j}"
+                    kg.add_relationship(
+                        rel_id, f"contract_{j}", f"function_{i}", 
+                        'CONTAINS', f"{contract_name} contains {function_name}"
+                    )
+        
+        # Update metadata
+        kg.metadata.update({
+            'analysis_type': 'text_based_fallback',
+            'compiler_available': False,
+            'extraction_method': 'regex_pattern_matching',
+            'entities_extracted': len(entities),
+            'relationships_extracted': len(kg.relationships)
+        })
+        
+        print(f"Fallback analysis completed: {len(entities)} entities, {len(kg.relationships)} relationships")
+        return kg
     
     def _compare_and_validate(self):
         """Compare e-contract with generated smart contract and validate"""
@@ -1010,13 +1115,14 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             # Create new tab
             econtract_tab_frame = ttk.Frame(self.results_notebook)
             self.results_notebook.add(econtract_tab_frame, text="E-Contract Analysis")
-            
-            # Create scrolled text widget
-            econtract_scroll = scrolledtext.ScrolledText(econtract_tab_frame, height=15, wrap=tk.WORD)
-            econtract_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        else:
-            # Get existing scrolled text widget
-            econtract_scroll = econtract_tab_frame.winfo_children()[0]
+        
+        # Always clear and recreate the scrolled text widget to avoid reference issues
+        for widget in econtract_tab_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrolled text widget
+        econtract_scroll = scrolledtext.ScrolledText(econtract_tab_frame, height=15, wrap=tk.WORD)
+        econtract_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Update content
         econtract_scroll.delete(1.0, tk.END)
@@ -1092,13 +1198,14 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             # Create new tab
             analysis_tab_frame = ttk.Frame(self.results_notebook)
             self.results_notebook.add(analysis_tab_frame, text="Smart Contract Analysis")
-            
-            # Create scrolled text widget
-            analysis_scroll = scrolledtext.ScrolledText(analysis_tab_frame, height=15, wrap=tk.WORD)
-            analysis_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        else:
-            # Get existing scrolled text widget
-            analysis_scroll = analysis_tab_frame.winfo_children()[0]
+        
+        # Always clear and recreate the scrolled text widget to avoid reference issues
+        for widget in analysis_tab_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrolled text widget
+        analysis_scroll = scrolledtext.ScrolledText(analysis_tab_frame, height=15, wrap=tk.WORD)
+        analysis_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Update content
         analysis_scroll.delete(1.0, tk.END)
@@ -1247,13 +1354,14 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             # Create new tab
             comparison_tab_frame = ttk.Frame(self.results_notebook)
             self.results_notebook.add(comparison_tab_frame, text="Comparison Results")
-            
-            # Create scrolled text widget
-            comparison_scroll = scrolledtext.ScrolledText(comparison_tab_frame, height=15, wrap=tk.WORD)
-            comparison_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        else:
-            # Get existing scrolled text widget
-            comparison_scroll = comparison_tab_frame.winfo_children()[0]
+        
+        # Always clear and recreate the scrolled text widget to avoid reference issues
+        for widget in comparison_tab_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrolled text widget
+        comparison_scroll = scrolledtext.ScrolledText(comparison_tab_frame, height=15, wrap=tk.WORD)
+        comparison_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Update content
         comparison_scroll.delete(1.0, tk.END)
@@ -1365,13 +1473,14 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             # Create new tab
             generation_tab_frame = ttk.Frame(self.results_notebook)
             self.results_notebook.add(generation_tab_frame, text="Generated Smart Contract")
-            
-            # Create scrolled text widget
-            generation_scroll = scrolledtext.ScrolledText(generation_tab_frame, height=15, wrap=tk.WORD)
-            generation_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        else:
-            # Get existing scrolled text widget
-            generation_scroll = generation_tab_frame.winfo_children()[0]
+        
+        # Always clear and recreate the scrolled text widget to avoid reference issues
+        for widget in generation_tab_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrolled text widget
+        generation_scroll = scrolledtext.ScrolledText(generation_tab_frame, height=15, wrap=tk.WORD)
+        generation_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Update content
         generation_scroll.delete(1.0, tk.END)
@@ -1474,13 +1583,14 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             # Create new tab
             visualization_tab_frame = ttk.Frame(self.results_notebook)
             self.results_notebook.add(visualization_tab_frame, text="Visualizations")
-            
-            # Create scrolled text widget
-            viz_scroll = scrolledtext.ScrolledText(visualization_tab_frame, height=15, wrap=tk.WORD)
-            viz_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        else:
-            # Get existing scrolled text widget
-            viz_scroll = visualization_tab_frame.winfo_children()[0]
+        
+        # Always clear and recreate the scrolled text widget to avoid reference issues
+        for widget in visualization_tab_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrolled text widget
+        viz_scroll = scrolledtext.ScrolledText(visualization_tab_frame, height=15, wrap=tk.WORD)
+        viz_scroll.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Update content
         viz_scroll.delete(1.0, tk.END)
