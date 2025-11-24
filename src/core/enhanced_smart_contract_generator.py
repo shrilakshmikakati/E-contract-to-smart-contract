@@ -32,6 +32,36 @@ class EnhancedSmartContractGenerator:
         
         return contract_code
     
+    def _classify_entity_by_content(self, text: str) -> str:
+        """Classify entity type based on content analysis"""
+        text_lower = text.lower().strip()
+        
+        # Financial entities
+        if any(pattern in text_lower for pattern in ['$', '£', '€', 'usd', 'gbp', 'eur', 'payment', 'fee', 'cost', 'amount', 'price', 'salary', 'rent', 'deposit', 'money']):
+            return 'FINANCIAL'
+        
+        # Person entities
+        if any(pattern in text_lower for pattern in ['tenant', 'landlord', 'employee', 'employer', 'client', 'customer', 'contractor', 'person', 'individual']):
+            return 'PERSON'
+        
+        # Organization entities
+        if any(pattern in text_lower for pattern in ['company', 'corporation', 'inc', 'llc', 'ltd', 'organization', 'firm', 'business']):
+            return 'ORGANIZATION'
+        
+        # Temporal entities
+        if any(pattern in text_lower for pattern in ['date', 'deadline', 'month', 'year', 'day', 'time', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']):
+            return 'TEMPORAL'
+        
+        # Location entities
+        if any(pattern in text_lower for pattern in ['address', 'street', 'city', 'state', 'country', 'location', 'property']):
+            return 'LOCATION'
+        
+        # Obligation entities
+        if any(pattern in text_lower for pattern in ['must', 'shall', 'required', 'obligation', 'duty', 'responsibility']):
+            return 'OBLIGATIONS'
+        
+        return 'GENERAL'
+    
     def _analyze_contract_requirements(self, entities: List[Dict[str, Any]], 
                                      relationships: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Enhanced analysis of entities and relationships to determine comprehensive contract requirements"""
@@ -49,23 +79,31 @@ class EnhancedSmartContractGenerator:
             'validation_functions': []
         }
         
-        # Enhanced business entity categorization
+        # Enhanced business entity categorization with expanded recognition
         self.parties = []
         self.financial_elements = []
         self.temporal_elements = []
         self.obligations = []
         self.conditions = []
         self.assets = []
+        self.locations = []
+        self.services = []
+        self.quantities = []
+        self.contact_info = []
         
-        # Enhanced entity processing with comprehensive business logic mapping
+        # Enhanced entity processing with comprehensive business logic mapping and expanded recognition
         for entity in entities:
             # Handle different entity formats
             if isinstance(entity, str):
-                entity_text = entity.lower()
-                entity_type = 'UNKNOWN'
+                entity_text = entity.lower().strip()
+                entity_type = self._classify_entity_by_content(entity_text)
             else:
-                entity_type = entity.get('label', '').upper()
-                entity_text = str(entity.get('text', '')).lower()
+                entity_type = entity.get('label', entity.get('type', '')).upper()
+                entity_text = str(entity.get('text', entity.get('value', ''))).lower().strip()
+                
+            # Skip empty or very short entities
+            if not entity_text or len(entity_text) < 2:
+                continue
             
             # Enhanced party detection with comprehensive role mapping
             if entity_type in ['PERSON', 'ORG', 'ORGANIZATION'] or any(role in entity_text for role in ['tenant', 'landlord', 'employee', 'employer', 'contractor', 'client', 'provider', 'lessor', 'lessee', 'buyer', 'seller']):
@@ -177,45 +215,97 @@ class EnhancedSmartContractGenerator:
                     'source_entity': entity
                 })
                 
-                # Add enforcement function with access control
-                analysis['functions'].append({
-                    'name': f"fulfill{obligation_name.title()}",
-                    'description': f"Fulfill obligation: {entity_text}",
-                    'visibility': 'external',
-                    'returns': 'bool',
-                    'requires_authorization': True,
-                    'authorized_party': responsible_party,
-                    'source_entity': entity,
-                    'function_type': 'obligation_fulfillment'
-                })
+            elif entity_type in ['LOCATION', 'GPE'] or any(term in entity_text for term in ['address', 'street', 'city', 'state', 'country', 'location', 'property']):
+                # Enhanced location handling
+                location_name = self._sanitize_variable_name(entity_text)
+                self.locations.append({'name': location_name, 'text': entity_text})
                 
-                # Add validation function
-                analysis['validation_functions'].append({
-                    'name': f"validate{obligation_name.title()}",
-                    'description': f"Validate completion of {entity_text}",
-                    'obligation': obligation_name
-                })
-                
-                # Add completion event with party tracking
-                analysis['events'].append({
-                    'name': f"{obligation_name.title()}Fulfilled",
-                    'description': f"Emitted when {entity_text} is fulfilled",
-                    'parameters': [
-                        {'name': 'fulfilledBy', 'type': 'address'},
-                        {'name': 'timestamp', 'type': 'uint256'},
-                        {'name': 'completedBy', 'type': 'address'}
-                    ],
+                analysis['state_variables'].append({
+                    'name': f"{location_name}Info",
+                    'type': 'string',
+                    'description': f"Location information for {entity_text}",
+                    'visibility': 'public',
                     'source_entity': entity
                 })
                 
-            elif entity_type == 'CONDITIONS':
-                # Conditions become modifiers
+            elif entity_type == 'SERVICE' or any(term in entity_text for term in ['service', 'work', 'development', 'consulting', 'delivery', 'maintenance', 'repair']):
+                # Enhanced service handling
+                service_name = self._sanitize_variable_name(entity_text)
+                self.services.append({'name': service_name, 'text': entity_text})
+                
+                analysis['state_variables'].extend([
+                    {
+                        'name': f"{service_name}Status",
+                        'type': 'bool',
+                        'description': f"Service completion status for {entity_text}",
+                        'visibility': 'public',
+                        'source_entity': entity
+                    },
+                    {
+                        'name': f"{service_name}Provider",
+                        'type': 'address',
+                        'description': f"Service provider for {entity_text}",
+                        'visibility': 'public',
+                        'source_entity': entity
+                    }
+                ])
+                
+            elif any(term in entity_text for term in ['quantity', 'number', 'count', 'days', 'hours', 'months', 'years']):
+                # Enhanced quantity and numeric handling
+                quantity_name = self._sanitize_variable_name(entity_text)
+                self.quantities.append({'name': quantity_name, 'text': entity_text})
+                
+                analysis['state_variables'].append({
+                    'name': quantity_name,
+                    'type': 'uint256',
+                    'description': f"Quantity value for {entity_text}",
+                    'visibility': 'public',
+                    'source_entity': entity
+                })
+                
+            elif any(term in entity_text for term in ['email', 'phone', 'contact', 'mobile', '@']):
+                # Enhanced contact information handling
+                contact_name = self._sanitize_variable_name(entity_text)
+                self.contact_info.append({'name': contact_name, 'text': entity_text})
+                
+                analysis['state_variables'].append({
+                    'name': f"{contact_name}Info",
+                    'type': 'string',
+                    'description': f"Contact information for {entity_text}",
+                    'visibility': 'public',
+                    'source_entity': entity
+                })
+                
+            elif entity_type == 'CONDITIONS' or any(term in entity_text for term in ['condition', 'if', 'when', 'provided', 'unless']):
+                # Enhanced condition handling with validation mechanisms
                 condition_name = self._sanitize_variable_name(entity_text)
+                self.conditions.append({'name': condition_name, 'text': entity_text})
+                
+                analysis['state_variables'].append({
+                    'name': f"{condition_name}Met",
+                    'type': 'bool',
+                    'description': f"Track if condition is met: {entity_text}",
+                    'visibility': 'public',
+                    'source_entity': entity
+                })
+                
                 analysis['modifiers'].append({
                     'name': f"require{condition_name.title()}",
                     'description': f"Require condition: {entity_text}",
                     'source_entity': entity
                 })
+                
+            else:
+                # Generic entity handling - ensure no entity is missed
+                generic_name = self._sanitize_variable_name(entity_text)
+                if generic_name and len(generic_name) > 1:
+                    analysis['state_variables'].append({
+                        'name': f"{generic_name}Value",
+                        'type': 'string',
+                        'description': f"Value for {entity_text}",
+                        'visibility': 'public',
+                        'source_entity': entity
+                    })
         
         # Enhanced relationship processing to create comprehensive functions
         processed_relations = set()  # Avoid duplicate functions

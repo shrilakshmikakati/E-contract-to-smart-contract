@@ -10,10 +10,10 @@ try:
     from ..blockchain.ast_generator import ASTGenerator
     from ..blockchain.solidity_parser import SolidityParser
     from ..blockchain.grammar_engine import GrammarEngine
-    from .knowledge_graph import KnowledgeGraph
+    from ..core.knowledge_graph import KnowledgeGraph
     from ..utils.file_handler import FileHandler
     from ..utils.config import Config
-    from ..realtime.smart_contract_generator import AccurateSmartContractGenerator
+    from .enhanced_smart_contract_generator import EnhancedSmartContractGenerator
 except ImportError:
     from blockchain.ast_generator import ASTGenerator
     from blockchain.solidity_parser import SolidityParser
@@ -21,7 +21,7 @@ except ImportError:
     from core.knowledge_graph import KnowledgeGraph
     from utils.file_handler import FileHandler
     from utils.config import Config
-    from realtime.smart_contract_generator import AccurateSmartContractGenerator
+    from core.enhanced_smart_contract_generator import EnhancedSmartContractGenerator
 
 class SmartContractProcessor:
     """
@@ -33,7 +33,7 @@ class SmartContractProcessor:
         self.ast_generator = ASTGenerator()
         self.solidity_parser = SolidityParser()
         self.grammar_engine = GrammarEngine()
-        self.contract_generator = AccurateSmartContractGenerator()
+        self.contract_generator = EnhancedSmartContractGenerator()
         self.processed_contracts = {}
     
     def process_contract(self, contract_code: str, contract_id: str = None) -> KnowledgeGraph:

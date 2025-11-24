@@ -5,6 +5,7 @@ Fixed version without embedded newline literals
 
 from typing import Dict, Any, List, Tuple, Optional, Set
 import difflib
+import re
 from datetime import datetime
 from collections import defaultdict
 import numpy as np
@@ -247,9 +248,13 @@ class KnowledgeGraphComparator:
             best_text_score = max(text_similarity, substring_match)
             score += best_text_score * 0.15
         
-        # 4. Semantic Context (25%)
+        # 4. Semantic Context (20%)
         semantic_score = self._calculate_enhanced_semantic_similarity(e_entity, s_entity)
-        score += semantic_score * 0.25
+        score += semantic_score * 0.2
+        
+        # 5. Entity Value Matching (5%) - for exact value matches
+        value_score = self._calculate_value_similarity(e_entity, s_entity)
+        score += value_score * 0.05
         
         return min(score, 1.0)
     
@@ -260,11 +265,11 @@ class KnowledgeGraphComparator:
         s_text = s_entity.get('text', '').lower().strip()
         s_type = s_entity.get('type', '').upper()
         
-        # Business entity patterns to smart contract mappings
+        # Enhanced business entity patterns to smart contract mappings with expanded coverage
         business_mappings = {
             'party_mappings': {
-                'patterns': ['corporation', 'company', 'inc', 'llc', 'ltd', 'party a', 'party b', 'client', 'provider', 'contractor', 'landlord', 'tenant', 'employee', 'employer', 'person', 'organization'],
-                'smart_contract_vars': ['client', 'provider', 'party', 'owner', 'contractor', 'payee', 'payer', 'address', 'account']
+                'patterns': ['corporation', 'company', 'inc', 'llc', 'ltd', 'party a', 'party b', 'client', 'provider', 'contractor', 'landlord', 'tenant', 'employee', 'employer', 'person', 'organization', 'individual', 'entity', 'lessor', 'lessee', 'buyer', 'seller', 'customer', 'supplier'],
+                'smart_contract_vars': ['client', 'provider', 'party', 'owner', 'contractor', 'payee', 'payer', 'address', 'account', 'tenant', 'landlord', 'employee', 'employer']
             },
             'financial_mappings': {
                 'patterns': ['$', 'usd', 'payment', 'fee', 'cost', 'amount', 'price', 'salary', 'wage', 'rent', 'money', 'gbp'],
@@ -287,8 +292,24 @@ class KnowledgeGraphComparator:
                 'smart_contract_vars': ['complete', 'deliver', 'execute', 'perform', 'fulfill', 'finish']
             },
             'status_mappings': {
-                'patterns': ['completed', 'finished', 'approved', 'signed', 'agreed'],
-                'smart_contract_vars': ['completed', 'approved', 'signed', 'active', 'finished', 'executed']
+                'patterns': ['completed', 'finished', 'approved', 'signed', 'agreed', 'active', 'inactive', 'pending', 'cancelled'],
+                'smart_contract_vars': ['completed', 'approved', 'signed', 'active', 'finished', 'executed', 'status']
+            },
+            'location_mappings': {
+                'patterns': ['address', 'street', 'city', 'state', 'country', 'location', 'property', 'premises', 'building'],
+                'smart_contract_vars': ['address', 'location', 'property', 'propertyaddress', 'info']
+            },
+            'contact_mappings': {
+                'patterns': ['email', 'phone', 'contact', 'mobile', 'telephone', '@', '.com', '.org'],
+                'smart_contract_vars': ['email', 'phone', 'contact', 'info', 'contactinfo']
+            },
+            'quantity_mappings': {
+                'patterns': ['number', 'count', 'quantity', 'days', 'hours', 'months', 'years', 'units'],
+                'smart_contract_vars': ['count', 'quantity', 'number', 'amount', 'daycount', 'monthcount']
+            },
+            'condition_mappings': {
+                'patterns': ['if', 'when', 'provided', 'condition', 'requirement', 'unless', 'except'],
+                'smart_contract_vars': ['condition', 'requirement', 'check', 'validate', 'verify']
             }
         }
         
@@ -333,14 +354,69 @@ class KnowledgeGraphComparator:
         
         return False
     
+    def _calculate_value_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
+        """Calculate similarity based on exact value matches"""
+        e_text = e_entity.get('text', '').lower().strip()
+        s_text = s_entity.get('text', '').lower().strip()
+        
+        # Extract numeric values
+        e_numbers = re.findall(r'\d+(?:\.\d+)?', e_text)
+        s_numbers = re.findall(r'\d+(?:\.\d+)?', s_text)
+        
+        if e_numbers and s_numbers:
+            # Check if any numbers match
+            common_numbers = set(e_numbers) & set(s_numbers)
+            if common_numbers:
+                return 1.0
+        
+        # Extract common words (excluding stop words)
+        stop_words = {'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by'}
+        e_words = set(word for word in e_text.split() if word not in stop_words and len(word) > 2)
+        s_words = set(word for word in s_text.split() if word not in stop_words and len(word) > 2)
+        
+        if e_words and s_words:
+            common_words = e_words & s_words
+            if common_words:
+                return len(common_words) / max(len(e_words), len(s_words))
+        
+        return 0.0
+    
+    def _calculate_value_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
+        """Calculate similarity based on exact value matches"""
+        e_text = e_entity.get('text', '').lower().strip()
+        s_text = s_entity.get('text', '').lower().strip()
+        
+        # Extract numeric values
+        e_numbers = re.findall(r'\d+(?:\.\d+)?', e_text)
+        s_numbers = re.findall(r'\d+(?:\.\d+)?', s_text)
+        
+        if e_numbers and s_numbers:
+            # Check if any numbers match
+            common_numbers = set(e_numbers) & set(s_numbers)
+            if common_numbers:
+                return 1.0
+        
+        # Extract common words (excluding stop words)
+        stop_words = {'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by'}
+        e_words = set(word for word in e_text.split() if word not in stop_words and len(word) > 2)
+        s_words = set(word for word in s_text.split() if word not in stop_words and len(word) > 2)
+        
+        if e_words and s_words:
+            common_words = e_words & s_words
+            if common_words:
+                return len(common_words) / max(len(e_words), len(s_words))
+        
+        return 0.0
+    
     def _are_related_entity_domains(self, type1: str, type2: str) -> bool:
         """Check if entity types are from related domains"""
         domain_groups = [
-            ['PERSON', 'ORG', 'ORGANIZATION', 'PARTY', 'CONTRACT_PARTY', 'VARIABLE'],
+            ['PERSON', 'ORG', 'ORGANIZATION', 'PARTY', 'CONTRACT_PARTY', 'VARIABLE', 'GENERAL'],
             ['MONEY', 'FINANCIAL', 'MONETARY_AMOUNT', 'CURRENCY', 'VARIABLE', 'STATE_VARIABLE'],
             ['DATE', 'TEMPORAL', 'TIME', 'DURATION', 'VARIABLE', 'STATE_VARIABLE'],
             ['FUNCTION', 'SMART_CONTRACT_FUNCTION', 'OBLIGATIONS', 'CONDITIONS'],
-            ['CONTRACT', 'SMART_CONTRACT', 'AGREEMENT', 'CONTRACT_DEFINITION']
+            ['CONTRACT', 'SMART_CONTRACT', 'AGREEMENT', 'CONTRACT_DEFINITION'],
+            ['LOCATION', 'GPE', 'ADDRESS', 'PROPERTY', 'VARIABLE', 'STATE_VARIABLE']
         ]
         
         for group in domain_groups:
