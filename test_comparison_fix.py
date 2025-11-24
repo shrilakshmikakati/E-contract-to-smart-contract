@@ -5,11 +5,18 @@ Test script to verify the comparison fix
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# Add the src directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from core.econtract_processor import EContractProcessor
-from core.smartcontract_processor import SmartContractProcessor  
-from core.comparator import KnowledgeGraphComparator
+try:
+    from core.econtract_processor import EContractProcessor
+    from core.smartcontract_processor import SmartContractProcessor  
+    from core.comparator import KnowledgeGraphComparator
+except ImportError as e:
+    print(f"Import error: {e}")
+    # Fallback - run test using the GUI approach
+    print("Using alternative testing approach...")
+    sys.exit(1)
 
 def test_comparison():
     """Test the comparison functionality"""

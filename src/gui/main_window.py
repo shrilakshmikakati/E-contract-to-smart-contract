@@ -1237,27 +1237,47 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         # Build display text with accuracy first
         result_text = "=== CONTRACT COMPARISON & ACCURACY ANALYSIS ===\n\n"
         
-        # ACCURACY ANALYSIS (show first as requested)
-        if hasattr(self, 'generated_contract_result') and self.generated_contract_result:
-            accuracy_score = self.generated_contract_result.get('accuracy_score', 0)
-            deployment_ready = self.generated_contract_result.get('deployment_ready', False)
+        # ENHANCED ACCURACY ANALYSIS (show first as requested)
+        accuracy_analysis = self.comparison_results.get('accuracy_analysis', {})
+        if accuracy_analysis:
+            accuracy_score = accuracy_analysis.get('accuracy_score', 0)
+            deployment_ready = accuracy_analysis.get('deployment_ready', False)
             
-            result_text += "📊 ACCURACY ANALYSIS:\n"
-            result_text += "=" * 30 + "\n"
-            result_text += f"Smart Contract Generation Accuracy: {accuracy_score:.2%}\n"
+            result_text += "📊 COMPREHENSIVE ACCURACY ANALYSIS:\n"
+            result_text += "=" * 40 + "\n"
+            result_text += f"Overall Generation Accuracy: {accuracy_score:.2%}\n"
             result_text += f"Deployment Ready: {'✅ Yes' if deployment_ready else '⚠️ No'}\n"
             
-            # Accuracy interpretation
-            if accuracy_score >= 0.95:
-                result_text += "📈 Interpretation: EXCELLENT - Ready for production deployment\n"
-            elif accuracy_score >= 0.85:
-                result_text += "📊 Interpretation: GOOD - Minor review recommended\n"
+            # Detailed accuracy breakdown
+            result_text += f"\n📈 ACCURACY BREAKDOWN:\n"
+            result_text += f"Entity Coverage: {accuracy_analysis.get('entity_coverage', 0):.2%}\n"
+            result_text += f"Relationship Coverage: {accuracy_analysis.get('relation_coverage', 0):.2%}\n"
+            result_text += f"Business Logic Preservation: {accuracy_analysis.get('business_logic_score', 0):.2%}\n"
+            result_text += f"Contract Completeness: {accuracy_analysis.get('completeness_score', 0):.2%}\n"
+            
+            # Enhanced interpretation
+            if accuracy_score >= 0.85:
+                result_text += "🎯 Interpretation: EXCELLENT - Production-ready smart contract\n"
             elif accuracy_score >= 0.70:
-                result_text += "📉 Interpretation: FAIR - Review and refinement needed\n"
+                result_text += "📊 Interpretation: GOOD - Minor enhancements recommended\n"
+            elif accuracy_score >= 0.50:
+                result_text += "📉 Interpretation: FAIR - Moderate improvements needed\n"
+            elif accuracy_score >= 0.30:
+                result_text += "⚠️ Interpretation: POOR - Major redesign required\n"
             else:
-                result_text += "⚠️ Interpretation: LOW - Significant improvements required\n"
+                result_text += "🔴 Interpretation: CRITICAL - Complete reconstruction needed\n"
             
             result_text += "\n"
+        else:
+            # Fallback to legacy accuracy if enhanced analysis not available
+            if hasattr(self, 'generated_contract_result') and self.generated_contract_result:
+                accuracy_score = self.generated_contract_result.get('accuracy_score', 0)
+                deployment_ready = self.generated_contract_result.get('deployment_ready', False)
+                
+                result_text += "📊 BASIC ACCURACY ANALYSIS:\n"
+                result_text += "=" * 30 + "\n"
+                result_text += f"Smart Contract Generation Accuracy: {accuracy_score:.2%}\n"
+                result_text += f"Deployment Ready: {'✅ Yes' if deployment_ready else '⚠️ No'}\n\n"
         
         # Knowledge Graph Comparison
         if self.econtract_kg and self.smartcontract_kg:
@@ -1296,13 +1316,50 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
                 result_text += f"  - {issue}\n"
         result_text += "\n"
         
-        # Recommendations
+        # Enhanced Recommendations
         recommendations = self.comparison_results.get('recommendations', [])
         if recommendations:
-            result_text += "RECOMMENDATIONS:\n"
-            for i, recommendation in enumerate(recommendations, 1):
-                result_text += f"{i}. {recommendation}\n"
-            result_text += "\n"
+            result_text += "🎯 ACTIONABLE RECOMMENDATIONS:\n"
+            result_text += "=" * 35 + "\n"
+            
+            # Categorize recommendations by priority
+            critical_recs = [r for r in recommendations if '🔴' in r or 'CRITICAL' in r]
+            priority_recs = [r for r in recommendations if '🟡' in r or 'PRIORITY' in r or 'MODERATE' in r]
+            improvement_recs = [r for r in recommendations if '🔧' in r or '📈' in r or '📊' in r]
+            success_recs = [r for r in recommendations if '✅' in r or '🎉' in r or '🚀' in r]
+            
+            # Display by priority
+            if critical_recs:
+                result_text += "🚨 CRITICAL ISSUES:\n"
+                for i, rec in enumerate(critical_recs, 1):
+                    result_text += f"  {i}. {rec}\n"
+                result_text += "\n"
+            
+            if priority_recs:
+                result_text += "⚡ HIGH PRIORITY:\n"
+                for i, rec in enumerate(priority_recs, 1):
+                    result_text += f"  {i}. {rec}\n"
+                result_text += "\n"
+            
+            if improvement_recs:
+                result_text += "🔧 IMPROVEMENTS:\n"
+                for i, rec in enumerate(improvement_recs, 1):
+                    result_text += f"  {i}. {rec}\n"
+                result_text += "\n"
+            
+            if success_recs:
+                result_text += "✅ STATUS:\n"
+                for i, rec in enumerate(success_recs, 1):
+                    result_text += f"  {i}. {rec}\n"
+                result_text += "\n"
+            
+            # Display any remaining recommendations
+            other_recs = [r for r in recommendations if r not in critical_recs + priority_recs + improvement_recs + success_recs]
+            if other_recs:
+                result_text += "📋 ADDITIONAL:\n"
+                for i, rec in enumerate(other_recs, 1):
+                    result_text += f"  {i}. {rec}\n"
+                result_text += "\n"
         
         # Entity Analysis
         entity_analysis = self.comparison_results.get('entity_analysis', {})

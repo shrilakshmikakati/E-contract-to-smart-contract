@@ -34,7 +34,7 @@ class EnhancedSmartContractGenerator:
     
     def _analyze_contract_requirements(self, entities: List[Dict[str, Any]], 
                                      relationships: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze entities and relationships to determine contract requirements"""
+        """Enhanced analysis of entities and relationships to determine comprehensive contract requirements"""
         
         analysis = {
             'state_variables': [],
@@ -43,75 +43,147 @@ class EnhancedSmartContractGenerator:
             'modifiers': [],
             'structs': [],
             'enums': [],
-            'mappings': []
+            'mappings': [],
+            'business_rules': [],
+            'access_controls': [],
+            'validation_functions': []
         }
         
-        # Process entities to create state variables
+        # Enhanced business entity categorization
+        self.parties = []
+        self.financial_elements = []
+        self.temporal_elements = []
+        self.obligations = []
+        self.conditions = []
+        self.assets = []
+        
+        # Enhanced entity processing with comprehensive business logic mapping
         for entity in entities:
-            entity_type = entity.get('label', '').upper()
-            entity_text = entity.get('text', '')
+            # Handle different entity formats
+            if isinstance(entity, str):
+                entity_text = entity.lower()
+                entity_type = 'UNKNOWN'
+            else:
+                entity_type = entity.get('label', '').upper()
+                entity_text = str(entity.get('text', '')).lower()
             
-            if entity_type in ['PERSON', 'ORG', 'ORGANIZATION']:
-                # Party entities become address variables
+            if entity_type in ['PERSON', 'ORG', 'ORGANIZATION'] or any(role in entity_text for role in ['tenant', 'landlord', 'employee', 'employer', 'contractor', 'client', 'provider']):
+                # Enhanced party handling with role-based access control
+                role = self._determine_entity_role(entity_text)
                 var_name = self._sanitize_variable_name(entity_text)
+                
+                self.parties.append({'name': var_name, 'role': role, 'text': entity_text})
+                
+                # Add party address variable
                 analysis['state_variables'].append({
                     'name': var_name,
                     'type': 'address',
-                    'description': f"Address of {entity_text}",
+                    'description': f"Address of {entity_text} ({role})",
                     'visibility': 'public',
                     'source_entity': entity
                 })
                 
-            elif entity_type in ['FINANCIAL', 'MONEY']:
-                # Financial entities become uint variables
-                var_name = self._sanitize_variable_name(entity_text)
+                # Add party role validation modifier
+                analysis['modifiers'].append({
+                    'name': f"only{role.title()}",
+                    'description': f"Restrict access to {role}",
+                    'parameter': var_name
+                })
+                
+            elif entity_type in ['FINANCIAL', 'MONEY'] or any(term in entity_text for term in ['$', 'payment', 'salary', 'rent', 'fee', 'deposit', 'amount']):
+                # Enhanced financial handling with context-aware variables
+                context = self._extract_financial_context(entity_text)
+                var_name = self._generate_financial_variable_name(entity_text, context)
+                
+                self.financial_elements.append({'name': var_name, 'context': context, 'text': entity_text})
+                
                 analysis['state_variables'].append({
                     'name': var_name,
                     'type': 'uint256',
-                    'description': f"Amount for {entity_text}",
+                    'description': f"Amount for {entity_text} ({context})",
                     'visibility': 'public',
                     'source_entity': entity
                 })
                 
-            elif entity_type in ['TEMPORAL', 'DATE']:
-                # Temporal entities become timestamp variables
-                var_name = self._sanitize_variable_name(entity_text)
+                # Add payment function for financial elements
+                analysis['functions'].append({
+                    'name': f"update{var_name.title()}",
+                    'description': f"Update {context} amount",
+                    'visibility': 'external',
+                    'parameters': [{'name': 'newAmount', 'type': 'uint256'}],
+                    'returns': 'bool',
+                    'requires_authorization': True,
+                    'source_entity': entity,
+                    'function_type': 'financial_update'
+                })
+                
+            elif entity_type in ['TEMPORAL', 'DATE'] or any(term in entity_text for term in ['date', 'deadline', 'time', 'duration', 'period']):
+                # Enhanced temporal handling with deadlines and validation
+                temporal_context = self._extract_temporal_context(entity_text)
+                var_name = self._generate_temporal_variable_name(entity_text, temporal_context)
+                
+                self.temporal_elements.append({'name': var_name, 'context': temporal_context, 'text': entity_text})
+                
                 analysis['state_variables'].append({
                     'name': var_name,
                     'type': 'uint256',
-                    'description': f"Timestamp for {entity_text}",
+                    'description': f"Timestamp for {entity_text} ({temporal_context})",
                     'visibility': 'public',
                     'source_entity': entity
                 })
                 
-            elif entity_type == 'OBLIGATIONS':
-                # Obligations become functions and state tracking variables
+                # Add deadline validation function if it's a deadline
+                if 'deadline' in temporal_context or 'expir' in entity_text:
+                    analysis['functions'].append({
+                        'name': f"check{var_name.title()}Deadline",
+                        'description': f"Check if {temporal_context} deadline has passed",
+                        'visibility': 'public',
+                        'returns': 'bool',
+                        'source_entity': entity,
+                        'function_type': 'temporal_validation'
+                    })
+                
+            elif entity_type == 'OBLIGATIONS' or any(term in entity_text for term in ['must', 'shall', 'required', 'obligation', 'duty']):
+                # Enhanced obligation handling with enforcement mechanisms
                 obligation_name = self._sanitize_variable_name(entity_text)
+                responsible_party = self._determine_responsible_party(entity_text, self.parties)
                 
-                # Add completion tracking variable
+                self.obligations.append({'name': obligation_name, 'party': responsible_party, 'text': entity_text})
+                
+                # Add completion tracking with party responsibility
                 analysis['state_variables'].append({
-                    'name': f"{obligation_name}Completed",
+                    'name': f"{obligation_name}Status",
                     'type': 'bool',
                     'description': f"Track completion of {entity_text}",
                     'visibility': 'public',
                     'source_entity': entity
                 })
                 
-                # Add function to fulfill obligation
+                # Add enforcement function with access control
                 analysis['functions'].append({
                     'name': f"fulfill{obligation_name.title()}",
                     'description': f"Fulfill obligation: {entity_text}",
                     'visibility': 'external',
                     'returns': 'bool',
+                    'requires_authorization': True,
+                    'authorized_party': responsible_party,
                     'source_entity': entity,
                     'function_type': 'obligation_fulfillment'
                 })
                 
-                # Add completion event
+                # Add validation function
+                analysis['validation_functions'].append({
+                    'name': f"validate{obligation_name.title()}",
+                    'description': f"Validate completion of {entity_text}",
+                    'obligation': obligation_name
+                })
+                
+                # Add completion event with party tracking
                 analysis['events'].append({
-                    'name': f"{obligation_name.title()}Completed",
-                    'description': f"Emitted when {entity_text} is completed",
+                    'name': f"{obligation_name.title()}Fulfilled",
+                    'description': f"Emitted when {entity_text} is fulfilled",
                     'parameters': [
+                        {'name': 'fulfilledBy', 'type': 'address'},
                         {'name': 'timestamp', 'type': 'uint256'},
                         {'name': 'completedBy', 'type': 'address'}
                     ],
@@ -127,36 +199,256 @@ class EnhancedSmartContractGenerator:
                     'source_entity': entity
                 })
         
-        # Process relationships to create functions
+        # Enhanced relationship processing to create comprehensive functions
+        processed_relations = set()  # Avoid duplicate functions
+        
         for relationship in relationships:
-            relation_type = relationship.get('relation', '')
+            relation_type = str(relationship.get('relation', '')).lower()
+            relation_text = str(relationship.get('text', '')).lower()
             
-            if relation_type in ['payment', 'financial_obligation']:
-                # Payment relationships become payment functions
-                analysis['functions'].append({
-                    'name': 'makePayment',
-                    'description': 'Process payment between parties',
-                    'visibility': 'external',
-                    'payable': True,
+            # Enhanced payment and financial processing
+            if any(term in relation_type or term in relation_text for term in ['payment', 'financial', 'pay', 'money', 'salary', 'rent']):
+                if 'payment_processing' not in processed_relations:
+                    # Main payment function
+                    analysis['functions'].append({
+                        'name': 'processPayment',
+                        'description': 'Process payments with validation and tracking',
+                        'visibility': 'external',
+                        'payable': True,
+                        'returns': 'bool',
+                        'source_relationship': relationship,
+                        'function_type': 'financial_processing',
+                        'requires_authorization': True
+                    })
+                    
+                    # Payment validation function
+                    analysis['validation_functions'].append({
+                        'name': 'validatePaymentAmount',
+                        'description': 'Validate payment amount and conditions',
+                        'relationship': relation_type
+                    })
+                    
+                    processed_relations.add('payment_processing')
+            
+            # Enhanced obligation processing
+            elif any(term in relation_type or term in relation_text for term in ['obligation', 'duty', 'must', 'shall', 'responsible']):
+                obligation_id = self._generate_obligation_id(relationship)
+                if obligation_id not in processed_relations:
+                    analysis['functions'].extend([
+                        {
+                            'name': f'fulfill{obligation_id.title()}',
+                            'description': f'Fulfill obligation: {relation_text}',
+                            'visibility': 'external',
+                            'returns': 'bool',
+                            'requires_authorization': True,
+                            'source_relationship': relationship,
+                            'function_type': 'obligation_fulfillment'
+                        },
+                        {
+                            'name': f'validate{obligation_id.title()}',
+                            'description': f'Validate obligation conditions',
+                            'visibility': 'public',
+                            'returns': 'bool',
+                            'function_type': 'validation'
+                        }
+                    ])
+                    processed_relations.add(obligation_id)
+            
+            # Enhanced condition processing  
+            elif any(term in relation_type or term in relation_text for term in ['condition', 'if', 'when', 'require', 'depend']):
+                condition_id = self._generate_condition_id(relationship)
+                if condition_id not in processed_relations:
+                    analysis['modifiers'].append({
+                        'name': f'require{condition_id.title()}',
+                        'description': f'Require condition: {relation_text}',
+                        'source_relationship': relationship
+                    })
+                    
+                    analysis['validation_functions'].append({
+                        'name': f'check{condition_id.title()}',
+                        'description': f'Check condition: {relation_text}',
+                        'relationship': relation_type
+                    })
+                    processed_relations.add(condition_id)
+            
+            # Enhanced temporal processing
+            elif any(term in relation_type or term in relation_text for term in ['temporal', 'deadline', 'time', 'expire', 'schedule']):
+                if 'temporal_management' not in processed_relations:
+                    analysis['functions'].extend([
+                        {
+                            'name': 'checkDeadlines',
+                            'description': 'Check all contract deadlines and trigger actions',
+                            'visibility': 'public',
+                            'returns': 'bool',
+                            'function_type': 'temporal_validation'
+                        },
+                        {
+                            'name': 'updateSchedule',
+                            'description': 'Update contract schedule and timelines',
+                            'visibility': 'external',
+                            'requires_authorization': True,
+                            'function_type': 'temporal_management'
+                        }
+                    ])
+                    processed_relations.add('temporal_management')
+                
+        # Add comprehensive business rule functions
+        self._add_business_validation_functions(analysis)
+        
+        # Add enhanced event system
+        self._add_comprehensive_events(analysis, relationships)
+        
+        # Add standard functions with enhancements
+        self._add_standard_functions(analysis)
+        
+        return analysis
+    
+    def _add_business_validation_functions(self, analysis: Dict[str, Any]):
+        """Add comprehensive business rule validation functions"""
+        
+        # Payment validation functions
+        if self.financial_elements:
+            analysis['functions'].extend([
+                {
+                    'name': 'validatePaymentConditions',
+                    'description': 'Validate payment amount, timing, and authorization',
+                    'visibility': 'internal',
                     'returns': 'bool',
-                    'source_relationship': relationship,
-                    'function_type': 'payment'
-                })
-                
-                # Add payment event
-                analysis['events'].append({
-                    'name': 'PaymentMade',
-                    'description': 'Emitted when a payment is made',
-                    'parameters': [
-                        {'name': 'from', 'type': 'address'},
-                        {'name': 'to', 'type': 'address'},
-                        {'name': 'amount', 'type': 'uint256'},
-                        {'name': 'timestamp', 'type': 'uint256'}
-                    ],
-                    'source_relationship': relationship
-                })
-                
-            elif relation_type in ['ownership']:
+                    'function_type': 'validation'
+                },
+                {
+                    'name': 'calculateLateFees',
+                    'description': 'Calculate late fees based on payment delays',
+                    'visibility': 'public',
+                    'returns': 'uint256',
+                    'function_type': 'financial_calculation'
+                }
+            ])
+        
+        # Access control validation
+        if self.parties:
+            analysis['functions'].append({
+                'name': 'validatePartyAuthorization',
+                'description': 'Validate party authorization for specific actions',
+                'visibility': 'internal',
+                'returns': 'bool',
+                'function_type': 'access_validation'
+            })
+        
+        # Temporal validation functions
+        if self.temporal_elements:
+            analysis['functions'].extend([
+                {
+                    'name': 'isWithinDeadline',
+                    'description': 'Check if action is within specified deadline',
+                    'visibility': 'public',
+                    'returns': 'bool',
+                    'function_type': 'temporal_validation'
+                },
+                {
+                    'name': 'calculateTimeRemaining',
+                    'description': 'Calculate remaining time for contract obligations',
+                    'visibility': 'public',
+                    'returns': 'uint256',
+                    'function_type': 'temporal_calculation'
+                }
+            ])
+        
+        # Obligation validation
+        if self.obligations:
+            analysis['functions'].extend([
+                {
+                    'name': 'validateObligationCompletion',
+                    'description': 'Validate that all prerequisites are met for obligation completion',
+                    'visibility': 'internal',
+                    'returns': 'bool',
+                    'function_type': 'obligation_validation'
+                },
+                {
+                    'name': 'getObligationStatus',
+                    'description': 'Get comprehensive status of all contract obligations',
+                    'visibility': 'external',
+                    'returns': 'string',
+                    'function_type': 'status_reporting'
+                }
+            ])
+    
+    def _add_comprehensive_events(self, analysis: Dict[str, Any], relationships: List[Dict[str, Any]]):
+        """Add comprehensive event system for contract transparency"""
+        
+        # Financial events
+        analysis['events'].extend([
+            {
+                'name': 'PaymentProcessed',
+                'description': 'Emitted when a payment is successfully processed',
+                'parameters': [
+                    {'name': 'payer', 'type': 'address'},
+                    {'name': 'amount', 'type': 'uint256'},
+                    {'name': 'paymentType', 'type': 'string'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            },
+            {
+                'name': 'PaymentValidationFailed',
+                'description': 'Emitted when payment validation fails',
+                'parameters': [
+                    {'name': 'payer', 'type': 'address'},
+                    {'name': 'reason', 'type': 'string'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            }
+        ])
+        
+        # Obligation events
+        analysis['events'].extend([
+            {
+                'name': 'ObligationAssigned',
+                'description': 'Emitted when an obligation is assigned to a party',
+                'parameters': [
+                    {'name': 'obligationType', 'type': 'string'},
+                    {'name': 'assignedTo', 'type': 'address'},
+                    {'name': 'deadline', 'type': 'uint256'}
+                ]
+            },
+            {
+                'name': 'ObligationFulfilled',
+                'description': 'Emitted when an obligation is successfully fulfilled',
+                'parameters': [
+                    {'name': 'obligationType', 'type': 'string'},
+                    {'name': 'fulfilledBy', 'type': 'address'},
+                    {'name': 'validationStatus', 'type': 'bool'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            }
+        ])
+        
+        # Access control events
+        analysis['events'].extend([
+            {
+                'name': 'UnauthorizedAccess',
+                'description': 'Emitted when unauthorized access is attempted',
+                'parameters': [
+                    {'name': 'attemptedBy', 'type': 'address'},
+                    {'name': 'functionCalled', 'type': 'string'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            },
+            {
+                'name': 'PartyRoleUpdated',
+                'description': 'Emitted when a party role is updated',
+                'parameters': [
+                    {'name': 'party', 'type': 'address'},
+                    {'name': 'oldRole', 'type': 'string'},
+                    {'name': 'newRole', 'type': 'string'}
+                ]
+            }
+        ])
+        
+        # Add additional relationship processing for ownership transfers
+        for relationship in relationships:
+            relation_type = str(relationship.get('relation', '')).lower()
+            
+            if relation_type in ['ownership']:
                 # Ownership relationships become transfer functions
                 analysis['functions'].append({
                     'name': 'transferOwnership',
@@ -184,33 +476,98 @@ class EnhancedSmartContractGenerator:
         return analysis
     
     def _add_standard_functions(self, analysis: Dict[str, Any]):
-        """Add standard contract management functions"""
+        """Add comprehensive standard contract management functions and elements"""
         
-        # Constructor
+        # Enhanced Constructor with party initialization
+        constructor_params = []
+        if hasattr(self, 'parties') and self.parties:
+            for party in self.parties:
+                constructor_params.append({'name': f'_{party["name"]}', 'type': 'address'})
+        
         analysis['functions'].insert(0, {
             'name': 'constructor',
-            'description': 'Initialize contract with required parameters',
+            'description': 'Initialize contract with parties and initial state',
             'visibility': 'public',
+            'parameters': constructor_params,
             'function_type': 'constructor'
         })
         
-        # Contract status checking
-        analysis['functions'].append({
-            'name': 'isContractActive',
-            'description': 'Check if contract is currently active',
-            'visibility': 'view',
-            'returns': 'bool',
-            'function_type': 'status_check'
-        })
+        # Enhanced contract status and management functions
+        analysis['functions'].extend([
+            {
+                'name': 'isContractActive',
+                'description': 'Check if contract is currently active',
+                'visibility': 'public',
+                'returns': 'bool',
+                'function_type': 'status_check'
+            },
+            {
+                'name': 'getContractStatus',
+                'description': 'Get comprehensive contract status',
+                'visibility': 'external',
+                'returns': 'string',
+                'function_type': 'status_check'
+            },
+            {
+                'name': 'terminateContract',
+                'description': 'Terminate the contract with proper authorization',
+                'visibility': 'external',
+                'returns': 'bool',
+                'requires_authorization': True,
+                'function_type': 'termination'
+            },
+            {
+                'name': 'emergencyStop',
+                'description': 'Emergency contract suspension',
+                'visibility': 'external',
+                'requires_authorization': True,
+                'function_type': 'emergency'
+            }
+        ])
         
-        # Contract termination
-        analysis['functions'].append({
-            'name': 'terminateContract',
-            'description': 'Terminate the contract',
-            'visibility': 'external',
-            'returns': 'bool',
-            'function_type': 'termination'
-        })
+        # Add essential modifiers for access control
+        analysis['modifiers'].extend([
+            {
+                'name': 'onlyActiveContract',
+                'description': 'Require contract to be active'
+            },
+            {
+                'name': 'onlyParties',
+                'description': 'Restrict access to contract parties only'
+            },
+            {
+                'name': 'notTerminated',
+                'description': 'Require contract not to be terminated'
+            }
+        ])
+        
+        # Add comprehensive events for transparency
+        analysis['events'].extend([
+            {
+                'name': 'ContractActivated',
+                'description': 'Emitted when contract is activated',
+                'parameters': [
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            },
+            {
+                'name': 'ContractTerminated',
+                'description': 'Emitted when contract is terminated',
+                'parameters': [
+                    {'name': 'terminatedBy', 'type': 'address'},
+                    {'name': 'reason', 'type': 'string'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            },
+            {
+                'name': 'EmergencyStop',
+                'description': 'Emitted during emergency contract suspension',
+                'parameters': [
+                    {'name': 'stoppedBy', 'type': 'address'},
+                    {'name': 'timestamp', 'type': 'uint256'}
+                ]
+            }
+        ])
         
         # Add contract status variables
         analysis['state_variables'].extend([
@@ -429,3 +786,111 @@ class EnhancedSmartContractGenerator:
                 if 'function_type' in func
             }
         }
+
+    def _determine_entity_role(self, entity_text: str) -> str:
+        """Determine the role of a party entity"""
+        entity_lower = str(entity_text).lower()
+        if any(term in entity_lower for term in ['tenant', 'renter', 'lessee']):
+            return 'tenant'
+        elif any(term in entity_lower for term in ['landlord', 'lessor', 'owner']):
+            return 'landlord'
+        elif any(term in entity_lower for term in ['employee', 'worker']):
+            return 'employee'
+        elif any(term in entity_lower for term in ['employer', 'company', 'corporation']):
+            return 'employer'
+        elif any(term in entity_lower for term in ['contractor', 'freelancer']):
+            return 'contractor'
+        elif any(term in entity_lower for term in ['client', 'customer']):
+            return 'client'
+        elif any(term in entity_lower for term in ['provider', 'supplier', 'vendor']):
+            return 'provider'
+        else:
+            return 'party'
+
+    def _extract_financial_context(self, entity_text: str) -> str:
+        """Extract financial context from entity text"""
+        entity_lower = str(entity_text).lower()
+        if any(term in entity_lower for term in ['salary', 'wage', 'compensation']):
+            return 'salary'
+        elif any(term in entity_lower for term in ['rent', 'rental']):
+            return 'rent'
+        elif any(term in entity_lower for term in ['fee', 'charge']):
+            return 'fee'
+        elif any(term in entity_lower for term in ['deposit', 'security']):
+            return 'deposit'
+        elif any(term in entity_lower for term in ['payment', 'pay']):
+            return 'payment'
+        else:
+            return 'amount'
+
+    def _generate_financial_variable_name(self, entity_text: str, context: str) -> str:
+        """Generate appropriate variable name for financial elements"""
+        base_name = context
+        if 'monthly' in str(entity_text).lower():
+            base_name += 'Monthly'
+        elif 'annual' in str(entity_text).lower():
+            base_name += 'Annual'
+        return self._sanitize_variable_name(base_name)
+
+    def _extract_temporal_context(self, entity_text: str) -> str:
+        """Extract temporal context from entity text"""
+        entity_lower = str(entity_text).lower()
+        if any(term in entity_lower for term in ['start', 'begin', 'commence']):
+            return 'start_date'
+        elif any(term in entity_lower for term in ['end', 'expir', 'terminat']):
+            return 'end_date'
+        elif any(term in entity_lower for term in ['deadline', 'due']):
+            return 'deadline'
+        elif any(term in entity_lower for term in ['notice', 'notification']):
+            return 'notice_period'
+        elif any(term in entity_lower for term in ['duration', 'period']):
+            return 'duration'
+        else:
+            return 'timestamp'
+
+    def _generate_temporal_variable_name(self, entity_text: str, context: str) -> str:
+        """Generate appropriate variable name for temporal elements"""
+        return self._sanitize_variable_name(context)
+
+    def _determine_responsible_party(self, obligation_text: str, parties: List[Dict]) -> str:
+        """Determine which party is responsible for an obligation"""
+        obligation_lower = str(obligation_text).lower()
+        
+        # Check if obligation text mentions specific parties
+        for party in parties:
+            if str(party['name']).lower() in obligation_lower or str(party['role']).lower() in obligation_lower:
+                return party['role']
+        
+        # Default responsibility based on common patterns
+        if any(term in obligation_lower for term in ['tenant', 'renter']):
+            return 'tenant'
+        elif any(term in obligation_lower for term in ['landlord', 'owner']):
+            return 'landlord'
+        elif any(term in obligation_lower for term in ['employee', 'worker']):
+            return 'employee'
+        elif any(term in obligation_lower for term in ['employer', 'company']):
+            return 'employer'
+        else:
+            return 'party'
+    
+    def _generate_obligation_id(self, obligation: str) -> str:
+        """Generate a unique identifier for an obligation"""
+        import re
+        # Extract key words from obligation
+        words = re.findall(r'\w+', str(obligation).lower())
+        # Take first few significant words
+        key_words = [w for w in words if len(w) > 3][:3]
+        if not key_words:
+            key_words = ['obligation']
+        return '_'.join(key_words)
+    
+    def _generate_condition_id(self, condition: str) -> str:
+        """Generate a unique identifier for a condition"""
+        import re
+        # Extract key words from condition
+        words = re.findall(r'\w+', str(condition).lower())
+        # Take first few significant words
+        key_words = [w for w in words if len(w) > 3][:3]
+        if not key_words:
+            key_words = ['condition']
+        return '_'.join(key_words)
