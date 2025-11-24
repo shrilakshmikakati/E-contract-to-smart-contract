@@ -36,28 +36,91 @@ class KnowledgeGraphComparator:
         if comparison_id is None:
             comparison_id = f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
+        print(f"Comparing: E-contract has {len(g_e.entities)} entities, Smart contract has {len(g_s.entities)} entities")
+        print(f"E-contract sample entities: {list(g_e.entities.keys())[:5]}")
+        print(f"Smart contract sample entities: {list(g_s.entities.keys())[:5]}")
+        
         # Step 1: Enhanced entity matching
         entity_matches = self._match_entities(g_e.entities, g_s.entities)
+        print(f"Found {len(entity_matches)} entity matches")
         
         # Step 2: Enhanced relationship matching  
         relation_matches = self._match_relations(g_e.relationships, g_s.relationships)
+        print(f"Found {len(relation_matches)} relationship matches")
         
         # Step 3: Calculate preservation metrics
         entity_preservation = self._calculate_entity_preservation(g_e.entities, g_s.entities, entity_matches)
         relation_preservation = self._calculate_relation_preservation(g_e.relationships, g_s.relationships, relation_matches)
         
         # Step 4: Generate detailed comparison report
+        overall_similarity = (entity_preservation + relation_preservation) / 2
+        
         comparison_report = {
             'comparison_id': comparison_id,
             'entity_matches': entity_matches,
             'relationship_matches': relation_matches,
             'entity_preservation_percentage': entity_preservation,
             'relationship_preservation_percentage': relation_preservation,
-            'overall_similarity_score': (entity_preservation + relation_preservation) / 2,
-            'timestamp': datetime.now().isoformat()
+            'overall_similarity_score': overall_similarity,
+            'timestamp': datetime.now().isoformat(),
+            
+            # GUI expects these structures
+            'summary': {
+                'overall_similarity_score': overall_similarity,
+                'total_entity_matches': len(entity_matches),
+                'total_relation_matches': len(relation_matches),
+                'entity_coverage_econtract': entity_preservation * 100,  # Convert to percentage for display
+                'entity_coverage_smartcontract': (len(entity_matches) / len(g_s.entities) * 100) if g_s.entities else 0,
+                'relation_coverage_econtract': relation_preservation * 100,  # Convert to percentage for display
+                'relation_coverage_smartcontract': (len(relation_matches) / len(g_s.relationships) * 100) if g_s.relationships else 0
+            },
+            
+            'entity_analysis': {
+                'matches': entity_matches,
+                'match_quality_distribution': self._analyze_match_quality(entity_matches)
+            },
+            
+            'compliance_assessment': {
+                'overall_compliance_score': overall_similarity,
+                'compliance_level': 'High' if overall_similarity > 0.8 else 'Medium' if overall_similarity > 0.5 else 'Low',
+                'is_compliant': overall_similarity > 0.6,
+                'compliance_issues': [] if overall_similarity > 0.6 else ['Low similarity between contracts']
+            },
+            
+            'recommendations': self._generate_recommendations(overall_similarity, len(entity_matches), len(relation_matches))
         }
         
         return comparison_report
+    
+    def _analyze_match_quality(self, entity_matches: List[Dict[str, Any]]) -> Dict[str, int]:
+        """Analyze the quality distribution of entity matches"""
+        quality_dist = {'high_quality': 0, 'medium_quality': 0, 'low_quality': 0}
+        
+        for match in entity_matches:
+            score = match.get('similarity_score', 0)
+            if score > 0.7:
+                quality_dist['high_quality'] += 1
+            elif score > 0.4:
+                quality_dist['medium_quality'] += 1
+            else:
+                quality_dist['low_quality'] += 1
+        
+        return quality_dist
+    
+    def _generate_recommendations(self, similarity: float, entity_matches: int, relation_matches: int) -> List[str]:
+        """Generate recommendations based on comparison results"""
+        recommendations = []
+        
+        if similarity < 0.3:
+            recommendations.append("Consider redesigning the smart contract to better reflect business logic")
+        if entity_matches < 10:
+            recommendations.append("Add more business entities mapping to smart contract variables")
+        if relation_matches < 20:
+            recommendations.append("Improve relationship modeling between contract parties and functions")
+        if similarity > 0.7:
+            recommendations.append("Good alignment between e-contract and smart contract")
+        
+        return recommendations
     
     def _match_entities(self, entities_e: Dict[str, Any], entities_s: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Enhanced entity matching with business-to-technical mapping"""
@@ -73,14 +136,14 @@ class KnowledgeGraphComparator:
             for s_entity in s_entities:
                 similarity_score = self._calculate_entity_similarity(e_entity, s_entity)
                 
-                if similarity_score > best_score and similarity_score > 0.25:  # Reduced threshold
+                if similarity_score > best_score and similarity_score > 0.1:  # Much lower threshold for better matching
                     best_score = similarity_score
                     best_match = s_entity
             
             if best_match:
                 matches.append({
-                    'entity1': e_entity,
-                    'entity2': best_match,
+                    'econtract_entity': e_entity,
+                    'smartcontract_entity': best_match,
                     'similarity_score': best_score,
                     'match_type': self._classify_match_type(e_entity, best_match)
                 })
@@ -133,12 +196,20 @@ class KnowledgeGraphComparator:
         # Business entity patterns to smart contract mappings
         business_mappings = {
             'party_mappings': {
-                'patterns': ['corporation', 'company', 'inc', 'llc', 'ltd', 'party a', 'party b', 'client', 'provider', 'contractor'],
-                'smart_contract_vars': ['client', 'provider', 'party', 'owner', 'contractor', 'payee', 'payer']
+                'patterns': ['corporation', 'company', 'inc', 'llc', 'ltd', 'party a', 'party b', 'client', 'provider', 'contractor', 'landlord', 'tenant', 'employee', 'employer', 'person', 'organization'],
+                'smart_contract_vars': ['client', 'provider', 'party', 'owner', 'contractor', 'payee', 'payer', 'address', 'account']
             },
             'financial_mappings': {
-                'patterns': ['$', 'usd', 'payment', 'fee', 'cost', 'amount', 'price', 'salary', 'wage'],
-                'smart_contract_vars': ['amount', 'price', 'fee', 'payment', 'balance', 'value', 'cost']
+                'patterns': ['$', 'usd', 'payment', 'fee', 'cost', 'amount', 'price', 'salary', 'wage', 'rent', 'money', 'gbp'],
+                'smart_contract_vars': ['amount', 'price', 'fee', 'payment', 'balance', 'value', 'cost', 'uint256']
+            },
+            'contract_mappings': {
+                'patterns': ['contract', 'agreement', 'lease', 'rental', 'employment', 'service'],
+                'smart_contract_vars': ['contract', 'agreement', 'active', 'created', 'activated']
+            },
+            'action_mappings': {
+                'patterns': ['pay', 'receive', 'send', 'transfer', 'activate', 'terminate', 'create', 'obligation'],
+                'smart_contract_vars': ['function', 'event', 'activate', 'terminate', 'payment', 'transfer']
             },
             'temporal_mappings': {
                 'patterns': ['month', 'day', 'year', 'deadline', 'duration', 'start', 'end', 'january', 'february'],
@@ -412,19 +483,19 @@ class KnowledgeGraphComparator:
     
     def _calculate_entity_preservation(self, entities_e: Dict[str, Any], entities_s: Dict[str, Any], 
                                      entity_matches: List[Dict[str, Any]]) -> float:
-        """Calculate entity preservation percentage"""
+        """Calculate entity preservation score (0-1)"""
         if not entities_e:
-            return 100.0 if not entities_s else 0.0
+            return 1.0 if not entities_s else 0.0
         
-        return (len(entity_matches) / len(entities_e)) * 100.0
+        return len(entity_matches) / len(entities_e)
     
     def _calculate_relation_preservation(self, relations_e: Dict[str, Any], relations_s: Dict[str, Any],
                                        relation_matches: List[Dict[str, Any]]) -> float:
-        """Calculate relationship preservation percentage"""
+        """Calculate relationship preservation score (0-1)"""
         if not relations_e:
-            return 100.0 if not relations_s else 0.0
+            return 1.0 if not relations_s else 0.0
         
-        return (len(relation_matches) / len(relations_e)) * 100.0
+        return len(relation_matches) / len(relations_e)
 
 
 # Legacy alias for backwards compatibility

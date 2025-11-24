@@ -334,7 +334,12 @@ class EnhancedSmartContractGenerator:
         if func.get('returns'):
             signature_parts.append(f"returns ({func['returns']})")
         
-        signature = f"    function {func['name']}() {' '.join(signature_parts)} {{"
+        # Special handling for constructor
+        if func.get('function_type') == 'constructor':
+            signature = f"    constructor() {' '.join(signature_parts)} {{"
+        else:
+            signature = f"    function {func['name']}() {' '.join(signature_parts)} {{"
+        
         if 'description' in func:
             signature += f" // {func['description']}"
         lines.append(signature)

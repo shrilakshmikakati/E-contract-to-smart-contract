@@ -713,12 +713,24 @@ class MainWindow:
                 
                 # Try to process the generated contract through analysis
                 try:
+                    print("Attempting compiler-based analysis...")
                     self.smartcontract_kg = self.smartcontract_processor.process_contract(contract_code)
+                    print(f"Compiler analysis completed: {len(self.smartcontract_kg.entities)} entities, {len(self.smartcontract_kg.relationships)} relationships")
+                    
+                    # If compiler analysis returns empty results, use fallback
+                    if len(self.smartcontract_kg.entities) == 0 and len(self.smartcontract_kg.relationships) == 0:
+                        print("Compiler analysis returned empty results, switching to fallback...")
+                        print(f"Contract code preview: {contract_code[:200]}...")
+                        self.smartcontract_kg = self._analyze_contract_text_fallback(contract_code)
+                        print(f"Fallback analysis completed: {len(self.smartcontract_kg.entities)} entities, {len(self.smartcontract_kg.relationships)} relationships")
+                        
                 except Exception as compiler_error:
                     # If compiler analysis fails, use fallback text-based analysis
                     print(f"Compiler analysis failed: {compiler_error}")
                     print("Using fallback text-based analysis...")
+                    print(f"Contract code preview: {contract_code[:200]}...")
                     self.smartcontract_kg = self._analyze_contract_text_fallback(contract_code)
+                    print(f"Fallback analysis completed: {len(self.smartcontract_kg.entities)} entities, {len(self.smartcontract_kg.relationships)} relationships")
                 
                 self._update_progress(80)
                 
@@ -754,76 +766,78 @@ class MainWindow:
         contract_matches = re.findall(r'contract\s+(\w+)', contract_code)
         for i, contract_name in enumerate(contract_matches):
             entity_id = f"contract_{i}"
-            entities.append({
-                'id': entity_id,
+            entity_data = {
                 'text': contract_name,
                 'type': 'CONTRACT',
                 'category': 'STRUCTURE',
                 'position': {'start': 0, 'end': len(contract_name)}
-            })
-            kg.add_entity(entity_id, contract_name, 'CONTRACT', category='STRUCTURE')
+            }
+            entities.append(entity_data)
+            kg.add_entity(entity_id, entity_data)
         
         # Extract function names
         function_matches = re.findall(r'function\s+(\w+)', contract_code)
         for i, function_name in enumerate(function_matches):
             entity_id = f"function_{i}"
-            entities.append({
-                'id': entity_id,
+            entity_data = {
                 'text': function_name,
                 'type': 'FUNCTION',
                 'category': 'BEHAVIOR',
                 'position': {'start': 0, 'end': len(function_name)}
-            })
-            kg.add_entity(entity_id, function_name, 'FUNCTION', category='BEHAVIOR')
+            }
+            entities.append(entity_data)
+            kg.add_entity(entity_id, entity_data)
         
         # Extract variable declarations
         var_matches = re.findall(r'(?:uint256|string|address|bool|mapping)\s+(?:public\s+)?(\w+)', contract_code)
         for i, var_name in enumerate(var_matches):
             entity_id = f"variable_{i}"
-            entities.append({
-                'id': entity_id,
+            entity_data = {
                 'text': var_name,
                 'type': 'STATE_VARIABLE',
                 'category': 'DATA',
                 'position': {'start': 0, 'end': len(var_name)}
-            })
-            kg.add_entity(entity_id, var_name, 'STATE_VARIABLE', category='DATA')
+            }
+            entities.append(entity_data)
+            kg.add_entity(entity_id, entity_data)
         
         # Extract events
         event_matches = re.findall(r'event\s+(\w+)', contract_code)
         for i, event_name in enumerate(event_matches):
             entity_id = f"event_{i}"
-            entities.append({
-                'id': entity_id,
+            entity_data = {
                 'text': event_name,
                 'type': 'EVENT',
                 'category': 'BEHAVIOR',
                 'position': {'start': 0, 'end': len(event_name)}
-            })
-            kg.add_entity(entity_id, event_name, 'EVENT', category='BEHAVIOR')
+            }
+            entities.append(entity_data)
+            kg.add_entity(entity_id, entity_data)
         
         # Extract modifiers
         modifier_matches = re.findall(r'modifier\s+(\w+)', contract_code)
         for i, modifier_name in enumerate(modifier_matches):
             entity_id = f"modifier_{i}"
-            entities.append({
-                'id': entity_id,
+            entity_data = {
                 'text': modifier_name,
                 'type': 'MODIFIER',
                 'category': 'BEHAVIOR',
                 'position': {'start': 0, 'end': len(modifier_name)}
-            })
-            kg.add_entity(entity_id, modifier_name, 'MODIFIER', category='BEHAVIOR')
+            }
+            entities.append(entity_data)
+            kg.add_entity(entity_id, entity_data)
         
         # Add some basic relationships
         if contract_matches and function_matches:
             for i, function_name in enumerate(function_matches):
                 for j, contract_name in enumerate(contract_matches):
                     rel_id = f"contains_{i}_{j}"
-                    kg.add_relationship(
-                        rel_id, f"contract_{j}", f"function_{i}", 
-                        'CONTAINS', f"{contract_name} contains {function_name}"
-                    )
+                    relationship_data = {
+                        'relation': 'CONTAINS',
+                        'description': f"{contract_name} contains {function_name}",
+                        'type': 'STRUCTURAL'
+                    }
+                    kg.add_relationship(rel_id, f"contract_{j}", f"function_{i}", relationship_data)
         
         # Update metadata
         kg.metadata.update({
@@ -1267,11 +1281,7 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         result_text += "COMPARISON SUMMARY:\n"
         result_text += f"Overall Similarity Score: {summary.get('overall_similarity_score', 0):.3f}\n"
         result_text += f"Entity Matches: {summary.get('total_entity_matches', 0)}\n"
-        result_text += f"Relationship Matches: {summary.get('total_relation_matches', 0)}\n"
-        result_text += f"E-Contract Entity Coverage: {summary.get('entity_coverage_econtract', 0):.1%}\n"
-        result_text += f"Smart Contract Entity Coverage: {summary.get('entity_coverage_smartcontract', 0):.1%}\n"
-        result_text += f"E-Contract Relation Coverage: {summary.get('relation_coverage_econtract', 0):.1%}\n"
-        result_text += f"Smart Contract Relation Coverage: {summary.get('relation_coverage_smartcontract', 0):.1%}\n\n"
+        result_text += f"Relationship Matches: {summary.get('total_relation_matches', 0)}\n\n"
         
         # Compliance Assessment
         compliance = self.comparison_results.get('compliance_assessment', {})
