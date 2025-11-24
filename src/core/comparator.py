@@ -335,8 +335,8 @@ class KnowledgeGraphComparator:
             
             if best_match:
                 matches.append({
-                    'relation1': e_relation,
-                    'relation2': best_match,
+                    'econtract_relation': e_relation,
+                    'smartcontract_relation': best_match,
                     'similarity_score': best_score
                 })
         
