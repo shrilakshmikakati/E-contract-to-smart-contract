@@ -67,21 +67,39 @@ class EnhancedSmartContractGenerator:
                 entity_type = entity.get('label', '').upper()
                 entity_text = str(entity.get('text', '')).lower()
             
-            if entity_type in ['PERSON', 'ORG', 'ORGANIZATION'] or any(role in entity_text for role in ['tenant', 'landlord', 'employee', 'employer', 'contractor', 'client', 'provider']):
+            # Enhanced party detection with comprehensive role mapping
+            if entity_type in ['PERSON', 'ORG', 'ORGANIZATION'] or any(role in entity_text for role in ['tenant', 'landlord', 'employee', 'employer', 'contractor', 'client', 'provider', 'lessor', 'lessee', 'buyer', 'seller']):
                 # Enhanced party handling with role-based access control
                 role = self._determine_entity_role(entity_text)
                 var_name = self._sanitize_variable_name(entity_text)
                 
-                self.parties.append({'name': var_name, 'role': role, 'text': entity_text})
+                # More descriptive party information
+                party_info = {
+                    'name': var_name, 
+                    'role': role, 
+                    'text': entity_text,
+                    'entity_type': entity_type,
+                    'authorization_level': self._determine_authorization_level(role)
+                }
+                self.parties.append(party_info)
                 
-                # Add party address variable
-                analysis['state_variables'].append({
-                    'name': var_name,
-                    'type': 'address',
-                    'description': f"Address of {entity_text} ({role})",
-                    'visibility': 'public',
-                    'source_entity': entity
-                })
+                # Add comprehensive party state variables
+                analysis['state_variables'].extend([
+                    {
+                        'name': var_name,
+                        'type': 'address',
+                        'visibility': 'public',
+                        'description': f'Address of {role} ({entity_text})',
+                        'context': 'party_identification'
+                    },
+                    {
+                        'name': f'{var_name}Authorized',
+                        'type': 'bool',
+                        'visibility': 'public',
+                        'description': f'Authorization status for {role}',
+                        'context': 'access_control'
+                    }
+                ])
                 
                 # Add party role validation modifier
                 analysis['modifiers'].append({
@@ -206,32 +224,57 @@ class EnhancedSmartContractGenerator:
             relation_type = str(relationship.get('relation', '')).lower()
             relation_text = str(relationship.get('text', '')).lower()
             
-            # Enhanced payment and financial processing
-            if any(term in relation_type or term in relation_text for term in ['payment', 'financial', 'pay', 'money', 'salary', 'rent']):
+            # Enhanced payment and financial processing with comprehensive function mapping
+            if any(term in relation_type or term in relation_text for term in ['payment', 'financial', 'pay', 'money', 'salary', 'rent', 'deposit', 'fee', 'cost']):
                 if 'payment_processing' not in processed_relations:
-                    # Main payment function
-                    analysis['functions'].append({
-                        'name': 'processPayment',
-                        'description': 'Process payments with validation and tracking',
-                        'visibility': 'external',
-                        'payable': True,
-                        'returns': 'bool',
-                        'source_relationship': relationship,
-                        'function_type': 'financial_processing',
-                        'requires_authorization': True
-                    })
+                    # Main payment processing function
+                    analysis['functions'].extend([
+                        {
+                            'name': 'processPayment',
+                            'description': 'Process payments with validation and tracking',
+                            'visibility': 'external',
+                            'payable': True,
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'financial_processing',
+                            'requires_authorization': True
+                        },
+                        {
+                            'name': 'calculatePaymentAmount',
+                            'description': 'Calculate payment amount based on conditions',
+                            'visibility': 'public',
+                            'returns': 'uint256',
+                            'source_relationship': relationship,
+                            'function_type': 'financial_calculation'
+                        },
+                        {
+                            'name': 'recordPaymentTransaction',
+                            'description': 'Record payment transaction in contract state',
+                            'visibility': 'internal',
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'financial_recording'
+                        }
+                    ])
                     
-                    # Payment validation function
-                    analysis['validation_functions'].append({
-                        'name': 'validatePaymentAmount',
-                        'description': 'Validate payment amount and conditions',
-                        'relationship': relation_type
-                    })
+                    # Enhanced payment validation functions
+                    analysis['validation_functions'].extend([
+                        {
+                            'name': 'validatePaymentAmount',
+                            'description': 'Validate payment amount and conditions',
+                            'relationship': relation_type
+                        },
+                        {
+                            'name': 'validatePaymentTiming',
+                            'description': 'Validate payment timing requirements',
+                            'relationship': relation_type
+                        }
+                    ])
                     
                     processed_relations.add('payment_processing')
             
-            # Enhanced obligation processing
-            elif any(term in relation_type or term in relation_text for term in ['obligation', 'duty', 'must', 'shall', 'responsible']):
+            # Enhanced obligation processing with comprehensive enforcement
+            elif any(term in relation_type or term in relation_text for term in ['obligation', 'duty', 'must', 'shall', 'responsible', 'liable', 'required', 'bound']):
                 obligation_id = self._generate_obligation_id(relationship)
                 if obligation_id not in processed_relations:
                     analysis['functions'].extend([
@@ -245,8 +288,25 @@ class EnhancedSmartContractGenerator:
                             'function_type': 'obligation_fulfillment'
                         },
                         {
-                            'name': f'validate{obligation_id.title()}',
-                            'description': f'Validate obligation conditions',
+                            'name': f'validate{obligation_id.title()}Conditions',
+                            'description': f'Validate all conditions for obligation fulfillment',
+                            'visibility': 'public',
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'obligation_validation'
+                        },
+                        {
+                            'name': f'enforce{obligation_id.title()}',
+                            'description': f'Enforce obligation compliance and penalties',
+                            'visibility': 'external',
+                            'returns': 'bool',
+                            'requires_authorization': True,
+                            'source_relationship': relationship,
+                            'function_type': 'obligation_enforcement'
+                        },
+                        {
+                            'name': f'get{obligation_id.title()}Status',
+                            'description': f'Get current status of obligation',
                             'visibility': 'public',
                             'returns': 'bool',
                             'function_type': 'validation'
@@ -254,7 +314,63 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(obligation_id)
             
-            # Enhanced condition processing  
+            # Enhanced condition processing with comprehensive validation
+            elif any(term in relation_type or term in relation_text for term in ['condition', 'if', 'when', 'provided', 'contingent', 'depends']):
+                condition_id = self._generate_condition_id(relationship)
+                if f'condition_{condition_id}' not in processed_relations:
+                    analysis['functions'].extend([
+                        {
+                            'name': f'check{condition_id.title()}Condition',
+                            'description': f'Check if condition is met: {relation_text}',
+                            'visibility': 'public',
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'condition_checking'
+                        },
+                        {
+                            'name': f'validate{condition_id.title()}Requirements',
+                            'description': f'Validate all requirements for condition',
+                            'visibility': 'internal',
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'condition_validation'
+                        }
+                    ])
+                    processed_relations.add(f'condition_{condition_id}')
+            
+            # Enhanced temporal processing with deadline management
+            elif any(term in relation_type or term in relation_text for term in ['temporal', 'deadline', 'due', 'expires', 'schedule', 'period']):
+                if 'temporal_management' not in processed_relations:
+                    analysis['functions'].extend([
+                        {
+                            'name': 'checkDeadlineCompliance',
+                            'description': 'Check if actions are within required deadlines',
+                            'visibility': 'public',
+                            'returns': 'bool',
+                            'source_relationship': relationship,
+                            'function_type': 'temporal_validation'
+                        },
+                        {
+                            'name': 'updateScheduleStatus',
+                            'description': 'Update contract schedule and timeline status',
+                            'visibility': 'external',
+                            'returns': 'bool',
+                            'requires_authorization': True,
+                            'source_relationship': relationship,
+                            'function_type': 'temporal_management'
+                        },
+                        {
+                            'name': 'getRemainingTime',
+                            'description': 'Calculate remaining time for contract obligations',
+                            'visibility': 'public',
+                            'returns': 'uint256',
+                            'source_relationship': relationship,
+                            'function_type': 'temporal_calculation'
+                        }
+                    ])
+                    processed_relations.add('temporal_management')
+            
+            # Enhanced access control processing  
             elif any(term in relation_type or term in relation_text for term in ['condition', 'if', 'when', 'require', 'depend']):
                 condition_id = self._generate_condition_id(relationship)
                 if condition_id not in processed_relations:
@@ -851,6 +967,16 @@ class EnhancedSmartContractGenerator:
     def _generate_temporal_variable_name(self, entity_text: str, context: str) -> str:
         """Generate appropriate variable name for temporal elements"""
         return self._sanitize_variable_name(context)
+    
+    def _determine_authorization_level(self, role: str) -> str:
+        """Determine authorization level based on party role"""
+        role_lower = str(role).lower()
+        if any(term in role_lower for term in ['landlord', 'lessor', 'employer', 'owner']):
+            return 'high'
+        elif any(term in role_lower for term in ['tenant', 'lessee', 'employee', 'worker']):
+            return 'medium'
+        else:
+            return 'basic'
 
     def _determine_responsible_party(self, obligation_text: str, parties: List[Dict]) -> str:
         """Determine which party is responsible for an obligation"""

@@ -396,7 +396,7 @@ class KnowledgeGraphComparator:
             for s_relation in s_relations:
                 similarity_score = self._calculate_relation_similarity(e_relation, s_relation)
                 
-                if similarity_score > best_score and similarity_score > 0.15:  # Further reduced threshold for better matching
+                if similarity_score > best_score and similarity_score > 0.12:  # Lowered threshold for better relationship matching
                     best_score = similarity_score
                     best_match = s_relation
             
@@ -416,18 +416,21 @@ class KnowledgeGraphComparator:
         relation_e = e_relation.get('relation', '').lower()
         relation_s = s_relation.get('relation', '').lower()
         
-        # 1. Enhanced Business-to-Technical Relationship Mapping (45%)
+        # 1. Enhanced Business-to-Technical Relationship Mapping (50% - increased weight)
         business_relation_mapping = self._get_enhanced_business_relation_mapping(e_relation, s_relation)
         if business_relation_mapping > 0:
-            score += business_relation_mapping * 0.45
+            score += business_relation_mapping * 0.50
         
-        # 2. Direct Relation Type Similarity (30%)
+        # 2. Direct Relation Type Similarity (25%)
         if relation_e == relation_s:
-            score += 0.3
+            score += 0.25
         elif self._are_compatible_relations(relation_e, relation_s):
-            score += 0.2
+            score += 0.18
         
-        # 3. Source and Target Compatibility (20%)
+        # 3. Source and Target Compatibility (15%)
+        # 4. Enhanced Contextual Similarity (10%)
+        contextual_score = self._calculate_contextual_relationship_similarity(e_relation, s_relation)
+        score += contextual_score * 0.10
         source_type_e = e_relation.get('source_type', '').upper()
         target_type_e = e_relation.get('target_type', '').upper()
         source_type_s = s_relation.get('source_type', '').upper()
@@ -528,17 +531,17 @@ class KnowledgeGraphComparator:
         
         # Comprehensive business relationship mappings
         enhanced_relation_mappings = {
-            # Obligation and enforcement mappings
+            # Obligation and enforcement mappings (Enhanced)
             'obligation_mappings': {
-                'business_patterns': ['obligation', 'must_do', 'shall_perform', 'required_to', 'duty', 'responsibility', 'liable'],
-                'technical_patterns': ['has_parameter', 'contains', 'calls', 'requires', 'modifies', 'validates', 'enforces'],
-                'score': 0.90
+                'business_patterns': ['obligation', 'must_do', 'shall_perform', 'required_to', 'duty', 'responsibility', 'liable', 'bound', 'committed', 'accountable'],
+                'technical_patterns': ['has_parameter', 'contains', 'calls', 'requires', 'modifies', 'validates', 'enforces', 'checks', 'asserts', 'ensures'],
+                'score': 0.95
             },
-            # Financial transaction mappings
+            # Financial transaction mappings (Enhanced)
             'financial_mappings': {
-                'business_patterns': ['payment', 'pays', 'financial', 'monetary', 'cost', 'fee', 'salary', 'rent'],
-                'technical_patterns': ['has_member', 'contains', 'stores', 'transfers', 'updates', 'balances'],
-                'score': 0.85
+                'business_patterns': ['payment', 'pays', 'financial', 'monetary', 'cost', 'fee', 'salary', 'rent', 'deposit', 'charge', 'billing', 'invoice'],
+                'technical_patterns': ['has_member', 'contains', 'stores', 'transfers', 'updates', 'balances', 'payable', 'value', 'amount', 'wei'],
+                'score': 0.92
             },
             # Temporal constraint mappings
             'temporal_mappings': {
@@ -580,6 +583,43 @@ class KnowledgeGraphComparator:
                 max_score = max(max_score, mapping_data['score'] * 0.7)  # Partial match
         
         return max_score
+    
+    def _calculate_contextual_relationship_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
+        """Calculate contextual similarity between business and technical relationships"""
+        e_context = f"{e_relation.get('relation', '')} {e_relation.get('text', '')} {e_relation.get('description', '')}".lower()
+        s_context = f"{s_relation.get('relation', '')} {s_relation.get('text', '')} {s_relation.get('description', '')}".lower()
+        
+        # Enhanced contextual mappings for better relationship understanding
+        contextual_patterns = {
+            'enforcement': {
+                'business': ['must', 'shall', 'required', 'obligation', 'duty', 'liable', 'responsible'],
+                'technical': ['require', 'validate', 'enforce', 'check', 'assert', 'modifier', 'onlyif']
+            },
+            'data_flow': {
+                'business': ['transfers', 'provides', 'delivers', 'supplies', 'contains'],
+                'technical': ['returns', 'stores', 'contains', 'maps', 'holds', 'references']
+            },
+            'conditional': {
+                'business': ['if', 'when', 'provided', 'condition', 'depends', 'contingent'],
+                'technical': ['if', 'require', 'condition', 'check', 'validate', 'assert']
+            },
+            'temporal': {
+                'business': ['due', 'deadline', 'schedule', 'period', 'duration', 'expires'],
+                'technical': ['timestamp', 'block', 'time', 'deadline', 'expires', 'schedule']
+            }
+        }
+        
+        max_contextual_score = 0.0
+        for pattern_type, patterns in contextual_patterns.items():
+            business_match = any(pattern in e_context for pattern in patterns['business'])
+            tech_match = any(pattern in s_context for pattern in patterns['technical'])
+            
+            if business_match and tech_match:
+                max_contextual_score = max(max_contextual_score, 0.9)
+            elif business_match or tech_match:
+                max_contextual_score = max(max_contextual_score, 0.5)
+        
+        return max_contextual_score
     
     def _calculate_semantic_relation_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
         """Calculate semantic similarity for relationships"""
