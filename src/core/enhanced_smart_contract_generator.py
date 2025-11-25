@@ -1270,7 +1270,7 @@ class EnhancedSmartContractGenerator:
         code = []
         
         code.append("// SPDX-License-Identifier: MIT")
-        code.append("pragma solidity ^0.8.19;")
+        code.append("pragma solidity ^0.8.16;")
         code.append("")
         
         code.append(f"contract {contract_name} {{")

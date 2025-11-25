@@ -6,7 +6,7 @@ from datetime import datetime
 class ProductionSmartContractGenerator:
     
     def __init__(self):
-        self.solidity_version = "0.8.19"
+        self.solidity_version = "0.8.16"
     
     def generate_contract(self, contract_text: str, entities: List[Dict] = None, 
                          relationships: List[Dict] = None) -> Tuple[str, Dict]:

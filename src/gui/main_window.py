@@ -433,7 +433,7 @@ class MainWindow:
 ## Deployment Instructions
 
 ### Prerequisites
-1. Install Solidity compiler (solc) version 0.8.19 or higher
+1. Install Solidity compiler (solc) version 0.8.16 or higher
 2. Install a Web3 provider (e.g., MetaMask)
 3. Have sufficient ETH/tokens for gas fees
 

@@ -61,9 +61,9 @@ class ASTGenerator:
             
             print("🔄 Installing Solidity compiler (one-time setup)...")
             try:
-                install_solc('0.8.19', timeout=30)
-                set_solc_version('0.8.19')
-                self.solc_version = '0.8.19'
+                install_solc('0.8.16', timeout=30)
+                set_solc_version('0.8.16')
+                self.solc_version = '0.8.16'
                 ASTGenerator._compiler_available = True
                 print("✅ Solidity compiler installed successfully")
                 return
