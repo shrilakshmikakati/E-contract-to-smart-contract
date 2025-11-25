@@ -373,7 +373,7 @@ class MainWindow:
                 self.processing_status.set(f"⚠️ Error reading file: {str(e)}")
     
     def _download_generated_contract(self):
-        """Download the generated smart contract"""
+        """Download the generated smart contract with comprehensive documentation"""
         
         if not self.generated_contract_result:
             messagebox.showerror("Error", "No smart contract generated yet")
@@ -397,17 +397,70 @@ class MainWindow:
         
         if file_path:
             try:
+                saved_files = []
+                
+                # Save the main contract
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(contract_code)
+                saved_files.append(file_path)
                 
-                # Also save deployment parameters
+                # Save deployment parameters
                 deploy_params = self.generated_contract_result.get('deployment_parameters', {})
                 if deploy_params:
                     param_file = file_path.replace('.sol', '_deployment_params.json')
                     with open(param_file, 'w', encoding='utf-8') as f:
                         json.dump(deploy_params, f, indent=2)
+                    saved_files.append(param_file)
                 
-                messagebox.showinfo("Success", f"Contract saved to:\n{file_path}\n\nDeployment parameters saved to:\n{param_file if deploy_params else 'Not available'}")
+                # Save README with contract information
+                readme_file = file_path.replace('.sol', '_README.md')
+                accuracy = self.generated_contract_result.get('accuracy_score', 0)
+                metrics = self.generated_contract_result.get('metrics', {})
+                
+                readme_content = f"""# Generated Smart Contract Documentation
+
+## Contract Information
+- **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **Accuracy Score**: {accuracy*100:.1f}%
+- **Contract Size**: {len(contract_code.splitlines())} lines
+- **Functions**: {contract_code.count('function ')}
+
+## Accuracy Metrics
+- **Entity Coverage**: {metrics.get('entity_coverage', 0)*100:.1f}%
+- **Relationship Coverage**: {metrics.get('relationship_coverage', 0)*100:.1f}%
+- **Business Logic Enforcement**: {metrics.get('business_logic_score', 0)*100:.1f}%
+
+## Deployment Instructions
+
+### Prerequisites
+1. Install Solidity compiler (solc) version 0.8.19 or higher
+2. Install a Web3 provider (e.g., MetaMask)
+3. Have sufficient ETH/tokens for gas fees
+
+### Deployment Steps
+1. Review the contract code in `{file_path.split('/')[-1]}`
+2. Check deployment parameters in `{param_file.split('/')[-1] if deploy_params else 'N/A'}`
+3. Compile the contract using your preferred tool (Remix, Hardhat, Truffle)
+4. Deploy to your target network (testnet recommended first)
+5. Verify the contract on block explorer
+
+### Testing Recommendations
+- Test all functions on testnet first
+- Verify business logic matches e-contract requirements
+- Check access control and permissions
+- Validate state variable initialization
+
+## Support
+For issues or questions about this generated contract, refer to the project documentation.
+"""
+                
+                with open(readme_file, 'w', encoding='utf-8') as f:
+                    f.write(readme_content)
+                saved_files.append(readme_file)
+                
+                # Show success message
+                files_list = '\n'.join([f"  • {f}" for f in saved_files])
+                messagebox.showinfo("Success", f"✅ Contract package saved successfully!\n\nFiles created:\n{files_list}")
                 
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to save contract: {str(e)}")
