@@ -1,6 +1,3 @@
-"""
-Entity extraction module for e-contract analysis using NLP techniques
-"""
 
 import re
 from typing import List, Dict, Any, Tuple
@@ -29,7 +26,6 @@ except ImportError:
     from utils.config import Config
 
 class EntityExtractor:
-    """Extracts entities and relationships from e-contract text"""
     
     def __init__(self):
         self.nlp = None
@@ -38,24 +34,20 @@ class EntityExtractor:
         self._setup_patterns()
     
     def _load_models(self):
-        """Load NLP models if available"""
         if SPACY_AVAILABLE:
             try:
                 self.nlp = spacy.load(Config.NLP_MODEL)
                 self.matcher = Matcher(self.nlp.vocab)
             except OSError:
-                # Only show warning once per class instance
                 if not hasattr(EntityExtractor, '_spacy_warning_shown'):
                     print(f"⚠️  spaCy model {Config.NLP_MODEL} not found - using fallback processing")
                     EntityExtractor._spacy_warning_shown = True
                 self.nlp = None
     
     def _setup_patterns(self):
-        """Setup entity matching patterns"""
         if not self.matcher:
             return
         
-        # Contract-specific entity patterns
         patterns = {
             "CONTRACT_PARTY": [
                 [{"LOWER": {"IN": ["party", "parties", "contractor", "client", "vendor"]}},
@@ -90,7 +82,6 @@ class EntityExtractor:
             self.matcher.add(pattern_name, pattern_list)
     
     def extract_named_entities_spacy(self, text: str) -> List[Dict[str, Any]]:
-        """Extract named entities using Spacy"""
         if not self.nlp:
             return []
         
@@ -110,7 +101,6 @@ class EntityExtractor:
         return entities
     
     def extract_named_entities_nltk(self, text: str) -> List[Dict[str, Any]]:
-        """Extract named entities using NLTK with error handling"""
         if not NLTK_AVAILABLE:
             return []
         
@@ -137,7 +127,6 @@ class EntityExtractor:
         return entities
     
     def extract_contract_patterns(self, text: str) -> List[Dict[str, Any]]:
-        """Extract contract-specific patterns"""
         if not self.matcher:
             return []
         
@@ -161,7 +150,6 @@ class EntityExtractor:
         return pattern_entities
     
     def extract_regex_entities(self, text: str) -> List[Dict[str, Any]]:
-        """Extract entities using regex patterns"""
         regex_patterns = {
             'EMAIL': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
             'PHONE': r'\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b',
@@ -188,7 +176,6 @@ class EntityExtractor:
         return entities
     
     def extract_domain_entities(self, text: str) -> List[Dict[str, Any]]:
-        """Extract domain-specific contract entities"""
         domain_keywords = {
             'PARTIES': [
                 'plaintiff', 'defendant', 'contractor', 'subcontractor', 'client',
@@ -222,7 +209,6 @@ class EntityExtractor:
                 pattern = r'\b' + re.escape(keyword) + r'\b'
                 matches = re.finditer(pattern, text_lower)
                 for match in matches:
-                    # Get the original case text
                     original_text = text[match.start():match.end()]
                     entities.append({
                         'text': original_text,
@@ -236,21 +222,17 @@ class EntityExtractor:
         return entities
     
     def merge_overlapping_entities(self, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Merge overlapping entities, keeping the one with higher confidence"""
         if not entities:
             return []
         
-        # Sort by start position
         sorted_entities = sorted(entities, key=lambda x: (x['start'], -x['confidence']))
         merged = []
         
         for entity in sorted_entities:
-            # Check for overlap with existing merged entities
             overlap_found = False
             for i, merged_entity in enumerate(merged):
                 if (entity['start'] < merged_entity['end'] and 
                     entity['end'] > merged_entity['start']):
-                    # Overlap found - keep the one with higher confidence
                     if entity['confidence'] > merged_entity['confidence']:
                         merged[i] = entity
                     overlap_found = True
@@ -262,10 +244,8 @@ class EntityExtractor:
         return merged
     
     def extract_all_entities(self, text: str) -> List[Dict[str, Any]]:
-        """Extract all entities using multiple methods"""
         all_entities = []
         
-        # Extract using different methods
         if self.nlp:
             all_entities.extend(self.extract_named_entities_spacy(text))
             all_entities.extend(self.extract_contract_patterns(text))
@@ -275,20 +255,16 @@ class EntityExtractor:
         all_entities.extend(self.extract_regex_entities(text))
         all_entities.extend(self.extract_domain_entities(text))
         
-        # Merge overlapping entities
         merged_entities = self.merge_overlapping_entities(all_entities)
         
-        # Filter by confidence threshold
         filtered_entities = [e for e in merged_entities if e['confidence'] >= 0.5]
         
-        # Add unique IDs
         for i, entity in enumerate(filtered_entities):
             entity['id'] = f"entity_{i}"
         
         return filtered_entities
     
     def categorize_entities(self, entities: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """Categorize entities by type"""
         categorized = defaultdict(list)
         
         for entity in entities:
@@ -298,7 +274,6 @@ class EntityExtractor:
         return dict(categorized)
     
     def get_entity_statistics(self, entities: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Get statistics about extracted entities"""
         if not entities:
             return {}
         

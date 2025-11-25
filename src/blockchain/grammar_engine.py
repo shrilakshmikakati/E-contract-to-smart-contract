@@ -1,19 +1,14 @@
-"""
-Grammar engine for translating AST nodes to human-readable descriptions
-"""
 
 from typing import Dict, Any, List, Optional
 import re
 
 class GrammarEngine:
-    """Converts AST node types into human-readable descriptions using grammar rules"""
     
     def __init__(self):
         self.grammar_rules = self._define_grammar_rules()
         self.type_mappings = self._define_type_mappings()
     
     def _define_grammar_rules(self) -> Dict[str, Dict[str, str]]:
-        """Define grammar rules for different AST node types"""
         return {
             'ContractDefinition': {
                 'template': "Contract '{name}' is defined as a {kind} contract{abstract_info}{inheritance_info}.",
@@ -112,7 +107,6 @@ class GrammarEngine:
         }
     
     def _define_type_mappings(self) -> Dict[str, str]:
-        """Define human-readable type mappings"""
         return {
             'uint': 'unsigned integer',
             'uint256': 'unsigned 256-bit integer',
@@ -136,54 +130,37 @@ class GrammarEngine:
         }
     
     def apply_grammar(self, node_type: str, node_data: Dict[str, Any]) -> str:
-        """
-        Apply grammar rules to convert AST node to human-readable description
-        
-        Args:
-            node_type: Type of AST node
-            node_data: Node data dictionary
-            
-        Returns:
-            Human-readable description
-        """
         if node_type not in self.grammar_rules:
             return f"Unknown node type: {node_type}"
         
         rule = self.grammar_rules[node_type]
         template = rule['template']
         
-        # Process template variables
         processed_template = self._process_template(template, node_data)
         
         return processed_template
     
     def _process_template(self, template: str, node_data: Dict[str, Any]) -> str:
-        """Process template with node data"""
         result = template
         
-        # Replace simple field references
         for field, value in node_data.items():
             placeholder = f"{{{field}}}"
             if placeholder in result:
                 result = result.replace(placeholder, str(value))
         
-        # Process complex placeholders
         result = self._process_complex_placeholders(result, node_data)
         
         return result
     
     def _process_complex_placeholders(self, template: str, node_data: Dict[str, Any]) -> str:
-        """Process complex template placeholders"""
         result = template
         
-        # Abstract info
         if '{abstract_info}' in result:
             abstract_info = ""
             if node_data.get('abstract', False):
                 abstract_info = " (abstract)"
             result = result.replace('{abstract_info}', abstract_info)
         
-        # Inheritance info
         if '{inheritance_info}' in result:
             inheritance_info = ""
             base_contracts = node_data.get('baseContracts', [])
@@ -192,42 +169,36 @@ class GrammarEngine:
                 inheritance_info = f" inheriting from {', '.join(base_names)}"
             result = result.replace('{inheritance_info}', inheritance_info)
         
-        # Virtual info
         if '{virtual_info}' in result:
             virtual_info = ""
             if node_data.get('virtual', False):
                 virtual_info = " (virtual)"
             result = result.replace('{virtual_info}', virtual_info)
         
-        # Override info
         if '{override_info}' in result:
             override_info = ""
             if node_data.get('override'):
                 override_info = " (override)"
             result = result.replace('{override_info}', override_info)
         
-        # Constant info
         if '{constant_info}' in result:
             constant_info = ""
             if node_data.get('constant', False):
                 constant_info = " constant"
             result = result.replace('{constant_info}', constant_info)
         
-        # Immutable info
         if '{immutable_info}' in result:
             immutable_info = ""
             if node_data.get('immutable', False):
                 immutable_info = " immutable"
             result = result.replace('{immutable_info}', immutable_info)
         
-        # Anonymous info
         if '{anonymous_info}' in result:
             anonymous_info = ""
             if node_data.get('anonymous', False):
                 anonymous_info = " (anonymous)"
             result = result.replace('{anonymous_info}', anonymous_info)
         
-        # Parameter count
         if '{param_count}' in result:
             parameters = node_data.get('parameters', {})
             if isinstance(parameters, dict):
@@ -236,7 +207,6 @@ class GrammarEngine:
                 param_count = len(parameters) if parameters else 0
             result = result.replace('{param_count}', str(param_count))
         
-        # Return count
         if '{return_count}' in result:
             return_params = node_data.get('returnParameters', {})
             if isinstance(return_params, dict):
@@ -245,12 +215,10 @@ class GrammarEngine:
                 return_count = len(return_params) if return_params else 0
             result = result.replace('{return_count}', str(return_count))
         
-        # Member count
         if '{member_count}' in result:
             members = node_data.get('members', [])
             result = result.replace('{member_count}', str(len(members)))
         
-        # Members list
         if '{members}' in result:
             members = node_data.get('members', [])
             if isinstance(members, list) and len(members) > 0:
@@ -262,18 +230,15 @@ class GrammarEngine:
             else:
                 result = result.replace('{members}', 'none')
         
-        # Type processing
         if '{type}' in result:
             type_name = self._extract_type_description(node_data.get('typeName', {}))
             result = result.replace('{type}', type_name)
         
-        # Condition processing
         if '{condition}' in result:
             condition = node_data.get('condition', {})
             condition_desc = self._describe_expression(condition)
             result = result.replace('{condition}', condition_desc)
         
-        # Action processing
         if '{true_action}' in result:
             true_body = node_data.get('trueBody', {})
             action_desc = self._describe_statement(true_body)
@@ -287,12 +252,10 @@ class GrammarEngine:
                 action_desc = ""
             result = result.replace('{false_action}', action_desc)
         
-        # Argument count
         if '{arg_count}' in result:
             arguments = node_data.get('arguments', [])
             result = result.replace('{arg_count}', str(len(arguments)))
         
-        # Return value
         if '{return_value}' in result:
             expression = node_data.get('expression')
             if expression:
@@ -301,7 +264,6 @@ class GrammarEngine:
                 return_desc = ""
             result = result.replace('{return_value}', return_desc)
         
-        # State mutability
         if '{state_mutability}' in result:
             state_mut = node_data.get('stateMutability', 'nonpayable')
             readable_mut = {
@@ -315,7 +277,6 @@ class GrammarEngine:
         return result
     
     def _extract_type_description(self, type_node: Dict[str, Any]) -> str:
-        """Extract human-readable type description"""
         if not isinstance(type_node, dict):
             return 'unknown type'
         
@@ -341,7 +302,6 @@ class GrammarEngine:
             return type_node.get('name', 'complex type')
     
     def _describe_expression(self, expression: Dict[str, Any]) -> str:
-        """Describe an expression in human-readable form"""
         if not isinstance(expression, dict):
             return str(expression)
         
@@ -381,7 +341,6 @@ class GrammarEngine:
             return f"expression of type {node_type}"
     
     def _describe_statement(self, statement: Dict[str, Any]) -> str:
-        """Describe a statement in human-readable form"""
         if not isinstance(statement, dict):
             return str(statement)
         
@@ -410,15 +369,6 @@ class GrammarEngine:
             return f"statement of type {node_type}"
     
     def generate_semantic_description(self, ast_structure: Dict[str, Any]) -> Dict[str, List[str]]:
-        """
-        Generate semantic descriptions for all elements in AST structure
-        
-        Args:
-            ast_structure: Structured AST data
-            
-        Returns:
-            Dictionary of semantic descriptions by category
-        """
         descriptions = {
             'contracts': [],
             'functions': [],
@@ -432,7 +382,6 @@ class GrammarEngine:
         for category, items in ast_structure.items():
             if category in descriptions:
                 for item in items:
-                    # Determine node type based on category
                     node_type_mapping = {
                         'contracts': 'ContractDefinition',
                         'functions': 'FunctionDefinition',

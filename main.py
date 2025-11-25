@@ -1,19 +1,12 @@
-"""
-E-Contract to Smart Contract Analysis System - Main Application
-Provides GUI interface for uploading e-contracts and generating smart contracts with accuracy metrics
-"""
 
 import sys
 import os
 
-# Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 def setup_dependencies():
-    """Setup basic dependencies"""
     print("Setting up dependencies...")
     
-    # Download essential NLTK data
     try:
         import nltk
         essential_datasets = ['stopwords', 'punkt', 'wordnet']
@@ -26,7 +19,6 @@ def setup_dependencies():
     except ImportError:
         print("NLTK not available - using basic processing")
     
-    # Check spaCy model
     try:
         import spacy
         spacy.load('en_core_web_sm')
@@ -37,7 +29,6 @@ def setup_dependencies():
     print("Dependency setup complete.")
 
 def launch_gui():
-    """Launch the GUI application"""
     print("E-CONTRACT TO SMART CONTRACT ANALYSIS SYSTEM")
     print("=" * 60)
     print("Upload e-contracts and generate smart contracts")
@@ -46,7 +37,6 @@ def launch_gui():
     setup_dependencies()
     
     try:
-        # Import GUI module
         from gui.main_window import MainWindow
         
         print("Starting GUI...")
@@ -62,13 +52,10 @@ def launch_gui():
         import traceback
         traceback.print_exc()
         
-        # Keep window open so user can see the error
         input("\nPress Enter to exit...")
 
 def main():
-    """Main entry point - launches GUI by default"""
     
-    # Check for command line arguments
     if len(sys.argv) > 1:
         if sys.argv[1] in ['--help', '-h']:
             print("E-Contract to Smart Contract Analysis System - Enhanced Edition")
@@ -90,7 +77,6 @@ def main():
             print("Unknown argument. Use --help for usage information.")
             return
     
-    # Launch GUI by default
     launch_gui()
 
 if __name__ == "__main__":

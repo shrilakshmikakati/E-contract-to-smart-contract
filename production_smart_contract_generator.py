@@ -1,92 +1,61 @@
-"""
-Production-Ready Smart Contract Generator
-Generates functional, deployable smart contracts with high business logic preservation
-"""
 
 import re
 from typing import List, Dict, Any, Tuple
 from datetime import datetime
 
 class ProductionSmartContractGenerator:
-    """Generate production-ready smart contracts with high business logic preservation"""
     
     def __init__(self):
         self.solidity_version = "0.8.19"
     
     def generate_contract(self, contract_text: str, entities: List[Dict] = None, 
                          relationships: List[Dict] = None) -> Tuple[str, Dict]:
-        """
-        Generate a complete, functional smart contract
         
-        Args:
-            contract_text: Original e-contract text (required)
-            entities: List of extracted entities from e-contract (optional)
-            relationships: List of extracted relationships (optional)
-            
-        Returns:
-            Tuple of (contract_code, metrics)
-        """
-        
-        # Use provided entities/relationships or empty lists
         if entities is None:
             entities = []
         if relationships is None:
             relationships = []
         
-        # Extract real business data from contract text and entities
         business_data = self._extract_business_logic(contract_text, entities, relationships)
         
-        # Build contract
         contract_parts = []
         
-        # Header
         contract_parts.extend(self._generate_header())
         
-        # Contract name based on content
         contract_name = self._determine_contract_name(business_data, contract_text)
         contract_parts.append(f"contract {contract_name} {{")
         contract_parts.append("")
         
-        # State variables
         contract_parts.extend(self._generate_state_variables(business_data))
         contract_parts.append("")
         
-        # Events
         contract_parts.extend(self._generate_events(business_data))
         contract_parts.append("")
         
-        # Structs
         contract_parts.extend(self._generate_structs(business_data))
         contract_parts.append("")
         
-        # Modifiers
         contract_parts.extend(self._generate_modifiers(business_data))
         contract_parts.append("")
         
-        # Constructor
         contract_parts.extend(self._generate_constructor(business_data))
         contract_parts.append("")
         
-        # Core business functions
         contract_parts.extend(self._generate_business_functions(business_data))
         contract_parts.append("")
         
-        # View functions
         contract_parts.extend(self._generate_view_functions(business_data))
         
-        # Close contract
         contract_parts.append("}")
         
         contract_code = "\n".join(contract_parts)
         
-        # Calculate real metrics
         metrics = self._calculate_metrics(entities, relationships, business_data, contract_code)
         
         return contract_code, metrics
     
     def _extract_business_logic(self, contract_text: str, entities: List[Dict], 
                                 relationships: List[Dict]) -> Dict[str, Any]:
-        """Extract actual business logic from contract text, entities, and relationships"""
         
         business_data = {
             'parties': [],
@@ -101,7 +70,6 @@ class ProductionSmartContractGenerator:
             'relationships': relationships
         }
         
-        # Extract parties
         party_patterns = [
             r'between\s+([A-Z][^,\n]+?)\s+(?:and|,)\s+([A-Z][^,\n]+)',
             r'(?:Landlord|Tenant|Client|Contractor|Vendor|Supplier)[:\s]*([A-Z][^,\.\n]{3,50})',
@@ -117,10 +85,8 @@ class ProductionSmartContractGenerator:
                     if match.strip() and len(match.strip()) > 2:
                         business_data['parties'].append(match.strip())
         
-        # Remove duplicates and limit
         business_data['parties'] = list(dict.fromkeys(business_data['parties']))[:5]
         
-        # Extract payment amounts
         amount_patterns = [
             r'\$[\d,]+(?:\.\d{2})?',
             r'(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:dollars|USD|pounds|EUR)',
@@ -137,7 +103,6 @@ class ProductionSmartContractGenerator:
         
         business_data['amounts'] = list(dict.fromkeys(business_data['amounts']))[:5]
         
-        # Extract obligations
         obligation_patterns = [
             r'(?:shall|must|required to|obligated to)\s+([^,\.\n]{10,100})',
             r'(?:responsibility|obligation|duty)[:\s]+([^,\.\n]{10,100})',
@@ -149,7 +114,6 @@ class ProductionSmartContractGenerator:
         
         business_data['obligations'] = list(dict.fromkeys(business_data['obligations']))[:8]
         
-        # Extract payment terms
         payment_patterns = [
             r'(?:payment|pay|paid)\s+(?:of\s+)?\$?([\d,]+)(?:\s+(?:per|every))?\s+(month|year|week|quarterly)',
             r'(?:rent|fee|price)[:\s]+\$?([\d,]+)\s*(?:per\s+)?(month|year|week)?',
@@ -165,7 +129,6 @@ class ProductionSmartContractGenerator:
                         'period': period
                     })
         
-        # Extract dates/deadlines
         date_patterns = [
             r'(?:within|after|before)\s+(\d+)\s+(days|weeks|months|years)',
             r'(?:deadline|due date|start date|end date)[:\s]+([^\n,\.]{5,30})',
@@ -177,7 +140,6 @@ class ProductionSmartContractGenerator:
         
         business_data['dates'] = list(dict.fromkeys(business_data['dates']))[:5]
         
-        # Extract conditions
         condition_patterns = [
             r'(?:if|unless|provided that|subject to)\s+([^,\.\n]{10,80})',
         ]
@@ -191,7 +153,6 @@ class ProductionSmartContractGenerator:
         return business_data
     
     def _determine_contract_name(self, business_data: Dict, contract_text: str) -> str:
-        """Determine appropriate contract name"""
         text_lower = contract_text.lower()
         
         if 'rental' in text_lower or 'lease' in text_lower:
@@ -208,7 +169,6 @@ class ProductionSmartContractGenerator:
             return "BusinessContract"
     
     def _generate_header(self) -> List[str]:
-        """Generate contract header"""
         return [
             "// SPDX-License-Identifier: MIT",
             f"pragma solidity ^{self.solidity_version};",
@@ -221,24 +181,20 @@ class ProductionSmartContractGenerator:
         ]
     
     def _generate_state_variables(self, business_data: Dict) -> List[str]:
-        """Generate state variables from entities and business data"""
         vars_list = []
         vars_list.append("    // ========== STATE VARIABLES ==========")
         vars_list.append("")
         
-        # Core variables
         vars_list.append("    address public owner;")
         vars_list.append("    bool public contractActive;")
         vars_list.append("    uint256 public contractStartDate;")
         vars_list.append("    uint256 public contractEndDate;")
         vars_list.append("")
         
-        # Generate variables from entities
         entities = business_data.get('entities', [])
         if entities:
             vars_list.append("    // Entity-based state variables")
             
-            # Track entity types for appropriate variable generation
             person_entities = [e for e in entities if e.get('type') == 'PERSON'][:5]
             org_entities = [e for e in entities if e.get('type') == 'ORGANIZATION'][:5]
             
@@ -252,7 +208,6 @@ class ProductionSmartContractGenerator:
                 if safe_name and len(safe_name) > 2:
                     vars_list.append(f"    address public {safe_name};")
         
-        # Party addresses from text extraction
         parties = business_data.get('parties', [])
         if parties:
             vars_list.append("    // Additional parties")
@@ -262,7 +217,6 @@ class ProductionSmartContractGenerator:
                     vars_list.append(f"    address public {safe_name};")
         vars_list.append("")
         
-        # Payment variables
         amounts = business_data.get('amounts', [])
         payments = business_data.get('payments', [])
         if amounts or payments:
@@ -273,7 +227,6 @@ class ProductionSmartContractGenerator:
             vars_list.append("    mapping(address => uint256) public paymentHistory;")
         vars_list.append("")
         
-        # Relationship tracking mappings
         relationships = business_data.get('relationships', [])
         if relationships and len(relationships) > 10:
             vars_list.append("    // Relationship tracking")
@@ -281,7 +234,6 @@ class ProductionSmartContractGenerator:
             vars_list.append("    mapping(bytes32 => uint256) public relationshipTimestamp;")
             vars_list.append("")
         
-        # Obligation tracking
         obligations = business_data.get('obligations', [])
         if obligations:
             vars_list.append("    // Obligations")
@@ -292,7 +244,6 @@ class ProductionSmartContractGenerator:
         return vars_list
     
     def _generate_events(self, business_data: Dict) -> List[str]:
-        """Generate events"""
         events = []
         events.append("    // ========== EVENTS ==========")
         events.append("")
@@ -306,7 +257,6 @@ class ProductionSmartContractGenerator:
         return events
     
     def _generate_structs(self, business_data: Dict) -> List[str]:
-        """Generate struct definitions"""
         structs = []
         structs.append("    // ========== STRUCTS ==========")
         structs.append("")
@@ -332,7 +282,6 @@ class ProductionSmartContractGenerator:
         return structs
     
     def _generate_modifiers(self, business_data: Dict) -> List[str]:
-        """Generate modifiers"""
         mods = []
         mods.append("    // ========== MODIFIERS ==========")
         mods.append("")
@@ -364,7 +313,6 @@ class ProductionSmartContractGenerator:
         return mods
     
     def _generate_constructor(self, business_data: Dict) -> List[str]:
-        """Generate constructor"""
         constructor = []
         constructor.append("    // ========== CONSTRUCTOR ==========")
         constructor.append("")
@@ -399,41 +347,34 @@ class ProductionSmartContractGenerator:
         return constructor
     
     def _generate_business_functions(self, business_data: Dict) -> List[str]:
-        """Generate core business functions"""
         functions = []
         functions.append("    // ========== BUSINESS FUNCTIONS ==========")
         functions.append("")
         
-        # Generate functions from relationships
         relationships = business_data.get('relationships', [])
         if relationships:
             functions.extend(self._generate_relationship_functions(relationships, business_data))
             functions.append("")
         
-        # Payment function
         if business_data.get('amounts') or business_data.get('payments'):
             functions.extend(self._generate_payment_function())
             functions.append("")
         
-        # Obligation functions
         if business_data.get('obligations'):
             functions.extend(self._generate_obligation_function())
             functions.append("")
         
-        # Termination
         functions.extend(self._generate_termination_function())
         
         return functions
     
     def _generate_relationship_functions(self, relationships: List[Dict], 
                                         business_data: Dict) -> List[str]:
-        """Generate functions from extracted relationships"""
         functions = []
         
         print(f"\n=== RELATIONSHIP FUNCTION GENERATION DEBUG ===")
         print(f"Total relationships received: {len(relationships)}")
         
-        # Map relationship types to function templates - expanded for e-contract types
         relationship_mapping = {
             'PARTY_RELATIONSHIP': self._create_party_relation_func,
             'LOCATION_REFERENCE': self._create_location_relation_func,
@@ -448,19 +389,16 @@ class ProductionSmartContractGenerator:
             'REQUIRES': self._create_requirement_relation_func,
             'PROVIDES': self._create_provision_relation_func,
             'TRANSFERS': self._create_transfer_relation_func,
-            # Add handlers for common e-contract relationships we're seeing
             'IS_DEFINED_AS': self._create_definition_relation_func,
             'ENDS_ON': self._create_temporal_relation_func,  # Reuse temporal handler
         }
         
-        # Track generated functions to avoid duplicates
         generated_functions = set()
         function_count = 0
         no_handler_count = 0
         skipped_duplicates = 0
         relationship_counter = 0  # Sequential counter for truly unique function names
         
-        # Count relationship types
         rel_types_count = {}
         for rel in relationships[:300]:
             rel_type = rel.get('relation', '').upper().replace(' ', '_')
@@ -470,11 +408,9 @@ class ProductionSmartContractGenerator:
         for rel_type, count in sorted(rel_types_count.items(), key=lambda x: x[1], reverse=True):
             print(f"  {rel_type}: {count}")
         
-        # Process relationships - significantly increased limit to improve preservation
         for idx, rel in enumerate(relationships[:300]):  # Increased to 300 for better coverage
             rel_type = rel.get('relation', '').upper().replace(' ', '_')
             
-            # Find matching relationship handler
             handler_found = False
             for key, handler in relationship_mapping.items():
                 if key in rel_type or rel_type in key or rel_type.startswith(key[:5]):
@@ -499,7 +435,6 @@ class ProductionSmartContractGenerator:
                             print(f"\n  ✗ Handler error for {rel_type}: {str(e)[:60]}")
                         continue  # Skip problematic relationships
             
-            # If no specific handler, create generic relationship function
             if not handler_found:
                 no_handler_count += 1
                 if function_count < 250:
@@ -529,7 +464,6 @@ class ProductionSmartContractGenerator:
         return functions
     
     def _create_payment_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create payment relationship function"""
         source = self._to_safe_name(rel.get('source_text', 'party'))
         target = self._to_safe_name(rel.get('target_text', 'recipient'))
         
@@ -544,7 +478,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_ownership_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create ownership relationship function"""
         owner_name = self._to_safe_name(rel.get('source_text', 'owner'))
         asset_name = self._to_safe_name(rel.get('target_text', 'asset'))
         
@@ -556,7 +489,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_obligation_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create obligation relationship function"""
         party = self._to_safe_name(rel.get('source_text', 'party'))
         obligation = self._to_safe_name(rel.get('target_text', 'obligation'))
         
@@ -571,7 +503,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_requirement_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create requirement relationship function"""
         subject = self._to_safe_name(rel.get('source_text', 'party'))
         requirement = self._to_safe_name(rel.get('target_text', 'requirement'))
         
@@ -583,7 +514,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_provision_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create provision relationship function"""
         provider = self._to_safe_name(rel.get('source_text', 'provider'))
         provision = self._to_safe_name(rel.get('target_text', 'service'))
         
@@ -598,7 +528,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_transfer_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create transfer relationship function"""
         from_party = self._to_safe_name(rel.get('source_text', 'from'))
         to_party = self._to_safe_name(rel.get('target_text', 'to'))
         
@@ -612,7 +541,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_party_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create party relationship function"""
         party1 = self._to_safe_name(rel.get('source_text', ''))
         party2 = self._to_safe_name(rel.get('target_text', ''))
         
@@ -627,7 +555,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_location_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create location reference function"""
         entity = self._to_safe_name(rel.get('source_text', ''))
         location = self._to_safe_name(rel.get('target_text', ''))
         
@@ -642,7 +569,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_temporal_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create temporal reference function"""
         entity = self._to_safe_name(rel.get('source_text', ''))
         timeref = self._to_safe_name(rel.get('target_text', ''))
         
@@ -657,7 +583,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_financial_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create financial obligation function"""
         payer = self._to_safe_name(rel.get('source_text', ''))
         amount_ref = self._to_safe_name(rel.get('target_text', ''))
         
@@ -675,7 +600,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_responsibility_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create responsibility function"""
         responsible = self._to_safe_name(rel.get('source_text', ''))
         duty = self._to_safe_name(rel.get('target_text', ''))
         
@@ -693,7 +617,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_association_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create association/co-occurrence function"""
         entity1 = self._to_safe_name(rel.get('source_text', ''))
         entity2 = self._to_safe_name(rel.get('target_text', ''))
         
@@ -708,7 +631,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_generic_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create generic relationship function for any unhandled type"""
         source = self._to_safe_name(rel.get('source_text', ''))
         target = self._to_safe_name(rel.get('target_text', ''))
         rel_type = self._to_safe_name(rel.get('relation', 'related'))
@@ -724,7 +646,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _create_definition_relation_func(self, rel: Dict, business_data: Dict, rel_id: int = 0) -> List[str]:
-        """Create definition relationship function (e.g., 'term' IS_DEFINED_AS 'explanation')"""
         term = self._to_safe_name(rel.get('source_text', 'term'))
         definition = self._to_safe_name(rel.get('target_text', 'definition'))
         
@@ -739,7 +660,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _generate_payment_function(self) -> List[str]:
-        """Generate payment processing"""
         func = []
         func.append("    function makePayment() external payable onlyActive {")
         func.append("        require(msg.value > 0, \"Payment required\");")
@@ -761,7 +681,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _generate_obligation_function(self) -> List[str]:
-        """Generate obligation management"""
         func = []
         func.append("    function fulfillObligation(bytes32 obligationId) external onlyParty onlyActive {")
         func.append("        require(!obligationsFulfilled[obligationId], \"Already fulfilled\");")
@@ -774,7 +693,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _generate_termination_function(self) -> List[str]:
-        """Generate termination function"""
         func = []
         func.append("    function terminateContract(string memory reason) external onlyOwner {")
         func.append("        require(contractActive, \"Already terminated\");")
@@ -786,7 +704,6 @@ class ProductionSmartContractGenerator:
         return func
     
     def _generate_view_functions(self, business_data: Dict) -> List[str]:
-        """Generate view functions"""
         functions = []
         functions.append("    // ========== VIEW FUNCTIONS ==========")
         functions.append("")
@@ -805,9 +722,7 @@ class ProductionSmartContractGenerator:
     
     def _calculate_metrics(self, entities: List, relationships: List, 
                           business_data: Dict, contract_code: str) -> Dict:
-        """Calculate real, accurate metrics"""
         
-        # Count business elements extracted
         total_business_elements = sum([
             len(business_data.get('parties', [])),
             len(business_data.get('amounts', [])),
@@ -816,7 +731,6 @@ class ProductionSmartContractGenerator:
             len(business_data.get('conditions', []))
         ])
         
-        # Count implemented elements
         has_parties = 'address public' in contract_code and len(business_data.get('parties', [])) > 0
         has_payments = 'makePayment' in contract_code
         has_obligations = 'fulfillObligation' in contract_code
@@ -826,7 +740,6 @@ class ProductionSmartContractGenerator:
         implemented_features = sum([has_parties, has_payments, has_obligations, has_events, has_modifiers])
         implementation_rate = (implemented_features / 5.0) * 100
         
-        # Calculate preservation
         preserved_elements = 0
         if has_parties:
             preserved_elements += len(business_data.get('parties', []))
@@ -837,7 +750,6 @@ class ProductionSmartContractGenerator:
         
         preservation_rate = (preserved_elements / max(total_business_elements, 1)) * 100
         
-        # Overall accuracy
         overall_accuracy = (preservation_rate + implementation_rate) / 2
         
         return {
@@ -854,9 +766,6 @@ class ProductionSmartContractGenerator:
         }
     
     def _to_safe_name(self, text: str) -> str:
-        """Convert to safe Solidity variable name"""
-        # Remove special characters
         safe = re.sub(r'[^a-zA-Z0-9_]', '', text)
-        # Ensure starts with lowercase
         safe = safe[0].lower() + safe[1:] if safe else "party"
         return safe if safe else "party"

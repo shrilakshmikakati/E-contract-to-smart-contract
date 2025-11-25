@@ -1,6 +1,3 @@
-"""
-File handling utilities for the E-Contract and Smart Contract Analysis System
-"""
 
 import os
 import json
@@ -10,22 +7,18 @@ import pandas as pd
 from pathlib import Path
 
 class FileHandler:
-    """Handles file operations for contracts, smart contracts, and analysis results"""
     
     @staticmethod
     def read_text_file(file_path: str) -> str:
-        """Read text content from a file"""
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 return file.read()
         except UnicodeDecodeError:
-            # Try with different encoding if UTF-8 fails
             with open(file_path, 'r', encoding='latin-1') as file:
                 return file.read()
     
     @staticmethod
     def write_text_file(file_path: str, content: str) -> bool:
-        """Write text content to a file"""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as file:
@@ -37,7 +30,6 @@ class FileHandler:
     
     @staticmethod
     def read_json_file(file_path: str) -> Optional[Dict[str, Any]]:
-        """Read JSON data from a file"""
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 return json.load(file)
@@ -47,7 +39,6 @@ class FileHandler:
     
     @staticmethod
     def write_json_file(file_path: str, data: Dict[str, Any]) -> bool:
-        """Write JSON data to a file"""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as file:
@@ -59,7 +50,6 @@ class FileHandler:
     
     @staticmethod
     def read_pickle_file(file_path: str) -> Optional[Any]:
-        """Read pickled data from a file"""
         try:
             with open(file_path, 'rb') as file:
                 return pickle.load(file)
@@ -69,7 +59,6 @@ class FileHandler:
     
     @staticmethod
     def write_pickle_file(file_path: str, data: Any) -> bool:
-        """Write data to a pickle file"""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'wb') as file:
@@ -81,11 +70,9 @@ class FileHandler:
     
     @staticmethod
     def read_solidity_file(file_path: str) -> Dict[str, Any]:
-        """Read and parse Solidity file"""
         try:
             content = FileHandler.read_text_file(file_path)
             
-            # Extract pragma version
             pragma_line = None
             for line in content.split('\n'):
                 if line.strip().startswith('pragma solidity'):
@@ -104,7 +91,6 @@ class FileHandler:
     
     @staticmethod
     def list_files_in_directory(directory: str, extensions: List[str] = None) -> List[str]:
-        """List files in a directory with optional extension filtering"""
         try:
             files = []
             for root, dirs, filenames in os.walk(directory):
@@ -118,17 +104,13 @@ class FileHandler:
     
     @staticmethod
     def save_graph_data(file_path: str, graph_data: Dict[str, Any]) -> bool:
-        """Save knowledge graph data in multiple formats"""
         try:
             base_path = os.path.splitext(file_path)[0]
             
-            # Save as JSON
             json_success = FileHandler.write_json_file(f"{base_path}.json", graph_data)
             
-            # Save as pickle for Python objects
             pickle_success = FileHandler.write_pickle_file(f"{base_path}.pkl", graph_data)
             
-            # Save entities and relations as CSV
             if 'entities' in graph_data and 'relations' in graph_data:
                 entities_df = pd.DataFrame(graph_data['entities'])
                 relations_df = pd.DataFrame(graph_data['relations'])
@@ -144,14 +126,11 @@ class FileHandler:
     
     @staticmethod
     def load_graph_data(file_path: str) -> Optional[Dict[str, Any]]:
-        """Load knowledge graph data"""
         try:
-            # Try loading from pickle first (preserves Python objects)
             pickle_path = os.path.splitext(file_path)[0] + '.pkl'
             if os.path.exists(pickle_path):
                 return FileHandler.read_pickle_file(pickle_path)
             
-            # Fallback to JSON
             json_path = os.path.splitext(file_path)[0] + '.json'
             if os.path.exists(json_path):
                 return FileHandler.read_json_file(json_path)
@@ -164,7 +143,6 @@ class FileHandler:
     
     @staticmethod
     def validate_file_path(file_path: str, allowed_extensions: List[str] = None) -> bool:
-        """Validate if file path exists and has allowed extension"""
         if not os.path.exists(file_path):
             return False
         
@@ -176,7 +154,6 @@ class FileHandler:
     
     @staticmethod
     def get_file_info(file_path: str) -> Dict[str, Any]:
-        """Get comprehensive file information"""
         try:
             stat = os.stat(file_path)
             return {

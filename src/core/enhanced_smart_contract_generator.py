@@ -1,14 +1,9 @@
-"""
-Enhanced Smart Contract Generator
-Generates comprehensive Solidity contracts with functions, events, modifiers, and business logic
-"""
 
 from typing import Dict, Any, List, Optional, Tuple
 import re
 from datetime import datetime
 
 class EnhancedSmartContractGenerator:
-    """Generates comprehensive smart contracts from business requirements"""
     
     def __init__(self):
         self.entity_to_variable_mapping = {}
@@ -18,26 +13,20 @@ class EnhancedSmartContractGenerator:
     def generate_enhanced_contract(self, entities: List[Dict[str, Any]], 
                                  relationships: List[Dict[str, Any]], 
                                  contract_name: str = "GeneratedContract") -> str:
-        """Generate a comprehensive Solidity contract"""
         
 
         
-        # Reset used names for new contract generation
         self._used_names = set()
         
-        # Normalize relationships and entities to ensure consistent format
         relationships = self._normalize_relationships(relationships)
         entities = self._normalize_entities(entities)
         
-        # Analyze entities and relationships
         contract_analysis = self._analyze_contract_requirements(entities, relationships)
         
-        # Generate contract components
         contract_code = self._build_contract_structure(contract_analysis, contract_name)
         
 
         
-        # Debug: Show relationship function types generated  
         relationship_func_types = [
             'relationship_processor', 'relationship_validator', 'relationship_executor',
             'individual_relationship_processor', 'individual_relationship_validator', 'individual_relationship_executor',
@@ -60,7 +49,6 @@ class EnhancedSmartContractGenerator:
         return contract_code
     
     def _add_additional_relationship_functions(self, analysis: Dict[str, Any], relationships: List[Dict], target_count: int):
-        """Generate additional relationship functions to achieve target coverage"""
         functions_added = 0
         
         for i, relationship in enumerate(relationships):
@@ -70,7 +58,6 @@ class EnhancedSmartContractGenerator:
             rel_type = relationship.get('relation', f'relationship_{i}')
             sanitized_type = self._sanitize_variable_name(rel_type)
             
-            # Add comprehensive relationship functions
             relationship_functions = [
                 {
                     'name': f'monitor{sanitized_type.title()}Relationship',
@@ -116,30 +103,23 @@ class EnhancedSmartContractGenerator:
                 functions_added += 1
     
     def _classify_entity_by_content(self, text: str) -> str:
-        """Classify entity type based on content analysis"""
         text_lower = text.lower().strip()
         
-        # Financial entities
         if any(pattern in text_lower for pattern in ['$', '£', '€', 'usd', 'gbp', 'eur', 'payment', 'fee', 'cost', 'amount', 'price', 'salary', 'rent', 'deposit', 'money']):
             return 'FINANCIAL'
         
-        # Person entities
         if any(pattern in text_lower for pattern in ['tenant', 'landlord', 'employee', 'employer', 'client', 'customer', 'contractor', 'person', 'individual']):
             return 'PERSON'
         
-        # Organization entities
         if any(pattern in text_lower for pattern in ['company', 'corporation', 'inc', 'llc', 'ltd', 'organization', 'firm', 'business']):
             return 'ORGANIZATION'
         
-        # Temporal entities
         if any(pattern in text_lower for pattern in ['date', 'deadline', 'month', 'year', 'day', 'time', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']):
             return 'TEMPORAL'
         
-        # Location entities
         if any(pattern in text_lower for pattern in ['address', 'street', 'city', 'state', 'country', 'location', 'property']):
             return 'LOCATION'
         
-        # Obligation entities
         if any(pattern in text_lower for pattern in ['must', 'shall', 'required', 'obligation', 'duty', 'responsibility']):
             return 'OBLIGATIONS'
         
@@ -147,7 +127,6 @@ class EnhancedSmartContractGenerator:
     
     def _analyze_contract_requirements(self, entities: List[Dict[str, Any]], 
                                      relationships: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Enhanced analysis of entities and relationships to determine comprehensive contract requirements"""
         
         analysis = {
             'state_variables': [],
@@ -162,7 +141,6 @@ class EnhancedSmartContractGenerator:
             'validation_functions': []
         }
         
-        # Enhanced business entity categorization with expanded recognition
         self.parties = []
         self.financial_elements = []
         self.temporal_elements = []
@@ -174,9 +152,7 @@ class EnhancedSmartContractGenerator:
         self.quantities = []
         self.contact_info = []
         
-        # Enhanced entity processing with comprehensive business logic mapping and expanded recognition
         for entity in entities:
-            # Handle different entity formats
             if isinstance(entity, str):
                 entity_text = entity.lower().strip()
                 entity_type = self._classify_entity_by_content(entity_text)
@@ -184,17 +160,13 @@ class EnhancedSmartContractGenerator:
                 entity_type = entity.get('label', entity.get('type', '')).upper()
                 entity_text = str(entity.get('text', entity.get('value', ''))).lower().strip()
                 
-            # Skip empty or very short entities
             if not entity_text or len(entity_text) < 2:
                 continue
             
-            # Enhanced party detection with comprehensive role mapping
             if entity_type in ['PERSON', 'ORG', 'ORGANIZATION'] or any(role in entity_text for role in ['tenant', 'landlord', 'employee', 'employer', 'contractor', 'client', 'provider', 'lessor', 'lessee', 'buyer', 'seller']):
-                # Enhanced party handling with role-based access control
                 role = self._determine_entity_role(entity_text)
                 var_name = self._sanitize_variable_name(entity_text)
                 
-                # More descriptive party information
                 party_info = {
                     'name': var_name, 
                     'role': role, 
@@ -204,7 +176,6 @@ class EnhancedSmartContractGenerator:
                 }
                 self.parties.append(party_info)
                 
-                # Add comprehensive party state variables
                 analysis['state_variables'].extend([
                     {
                         'name': var_name,
@@ -222,8 +193,6 @@ class EnhancedSmartContractGenerator:
                     }
                 ])
                 
-                # Add party role validation modifier
-                # Only add modifier if not already exists
                 modifier_name = f"only{role.title()}"
                 existing_modifiers = [m['name'] for m in analysis['modifiers']]
                 if modifier_name not in existing_modifiers:
@@ -234,7 +203,6 @@ class EnhancedSmartContractGenerator:
                     })
                 
             elif entity_type in ['FINANCIAL', 'MONEY'] or any(term in entity_text for term in ['$', 'payment', 'salary', 'rent', 'fee', 'deposit', 'amount']):
-                # Enhanced financial handling with context-aware variables
                 context = self._extract_financial_context(entity_text)
                 var_name = self._generate_financial_variable_name(entity_text, context)
                 
@@ -248,7 +216,6 @@ class EnhancedSmartContractGenerator:
                     'source_entity': entity
                 })
                 
-                # Add payment function for financial elements
                 analysis['functions'].append({
                     'name': f"update{var_name.title()}",
                     'description': f"Update {context} amount",
@@ -261,7 +228,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif entity_type in ['TEMPORAL', 'DATE'] or any(term in entity_text for term in ['date', 'deadline', 'time', 'duration', 'period']):
-                # Enhanced temporal handling with deadlines and validation
                 temporal_context = self._extract_temporal_context(entity_text)
                 var_name = self._generate_temporal_variable_name(entity_text, temporal_context)
                 
@@ -275,7 +241,6 @@ class EnhancedSmartContractGenerator:
                     'source_entity': entity
                 })
                 
-                # Add deadline validation function if it's a deadline
                 if 'deadline' in temporal_context or 'expir' in entity_text:
                     analysis['functions'].append({
                         'name': f"check{var_name.title()}Deadline",
@@ -287,13 +252,11 @@ class EnhancedSmartContractGenerator:
                     })
                 
             elif entity_type == 'OBLIGATIONS' or any(term in entity_text for term in ['must', 'shall', 'required', 'obligation', 'duty']):
-                # Enhanced obligation handling with enforcement mechanisms
                 obligation_name = self._sanitize_variable_name(entity_text)
                 responsible_party = self._determine_responsible_party(entity_text, self.parties)
                 
                 self.obligations.append({'name': obligation_name, 'party': responsible_party, 'text': entity_text})
                 
-                # Add completion tracking with party responsibility
                 analysis['state_variables'].append({
                     'name': f"{obligation_name}Status",
                     'type': 'bool',
@@ -303,7 +266,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif entity_type in ['LOCATION', 'GPE'] or any(term in entity_text for term in ['address', 'street', 'city', 'state', 'country', 'location', 'property']):
-                # Enhanced location handling
                 location_name = self._sanitize_variable_name(entity_text)
                 self.locations.append({'name': location_name, 'text': entity_text})
                 
@@ -316,7 +278,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif entity_type == 'SERVICE' or any(term in entity_text for term in ['service', 'work', 'development', 'consulting', 'delivery', 'maintenance', 'repair']):
-                # Enhanced service handling
                 service_name = self._sanitize_variable_name(entity_text)
                 self.services.append({'name': service_name, 'text': entity_text})
                 
@@ -338,7 +299,6 @@ class EnhancedSmartContractGenerator:
                 ])
                 
             elif any(term in entity_text for term in ['quantity', 'number', 'count', 'days', 'hours', 'months', 'years']):
-                # Enhanced quantity and numeric handling
                 quantity_name = self._sanitize_variable_name(entity_text)
                 self.quantities.append({'name': quantity_name, 'text': entity_text})
                 
@@ -351,7 +311,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif any(term in entity_text for term in ['email', 'phone', 'contact', 'mobile', '@']):
-                # Enhanced contact information handling
                 contact_name = self._sanitize_variable_name(entity_text)
                 self.contact_info.append({'name': contact_name, 'text': entity_text})
                 
@@ -364,7 +323,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif entity_type == 'CONDITIONS' or any(term in entity_text for term in ['condition', 'if', 'when', 'provided', 'unless']):
-                # Enhanced condition handling with validation mechanisms
                 condition_name = self._sanitize_variable_name(entity_text)
                 self.conditions.append({'name': condition_name, 'text': entity_text})
                 
@@ -383,7 +341,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             else:
-                # Generic entity handling - ensure no entity is missed
                 generic_name = self._sanitize_variable_name(entity_text)
                 if generic_name and len(generic_name) > 1:
                     analysis['state_variables'].append({
@@ -394,13 +351,10 @@ class EnhancedSmartContractGenerator:
                         'source_entity': entity
                     })
         
-        # ENHANCED BUSINESS RELATIONSHIP PROCESSING - Critical for relationship coverage
         processed_relations = set()  # Avoid duplicate functions
         
-        # Add comprehensive business rule extraction and function generation
         self._add_comprehensive_business_logic_functions(analysis, relationships, entities)
         
-        # Process each relationship with comprehensive function generation and business logic mapping
         for relationship in relationships:
             relation_type = str(relationship.get('relation', '')).lower()
             relation_text = str(relationship.get('text', '')).lower()
@@ -408,14 +362,11 @@ class EnhancedSmartContractGenerator:
             source = relationship.get('source', '')
             target = relationship.get('target', '')
             
-            # Generate unique function names based on relationship context
             function_base_name = self._generate_relationship_function_name(relationship, relation_type, relation_text)
             
-            # 1. Enhanced payment and financial processing with comprehensive function mapping
             if any(term in relation_type or term in relation_text for term in ['payment', 'financial', 'pay', 'money', 'salary', 'rent', 'deposit', 'fee', 'cost']):
                 payment_key = f"payment_{function_base_name}"
                 if payment_key not in processed_relations:
-                    # Main payment processing function
                     analysis['functions'].extend([
                         {
                             'name': 'processPayment',
@@ -445,7 +396,6 @@ class EnhancedSmartContractGenerator:
                         }
                     ])
                     
-                    # Enhanced payment validation functions
                     analysis['validation_functions'].extend([
                         {
                             'name': 'validatePaymentAmount',
@@ -461,7 +411,6 @@ class EnhancedSmartContractGenerator:
                     
                     processed_relations.add('payment_processing')
             
-            # Enhanced obligation processing with comprehensive enforcement
             elif any(term in relation_type or term in relation_text for term in ['obligation', 'duty', 'must', 'shall', 'responsible', 'liable', 'required', 'bound']):
                 obligation_id = self._generate_obligation_id(relationship)
                 if obligation_id not in processed_relations:
@@ -502,7 +451,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(obligation_id)
             
-            # Enhanced condition processing with comprehensive validation
             elif any(term in relation_type or term in relation_text for term in ['condition', 'if', 'when', 'provided', 'contingent', 'depends']):
                 condition_id = self._generate_condition_id(relationship)
                 if f'condition_{condition_id}' not in processed_relations:
@@ -526,7 +474,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(f'condition_{condition_id}')
             
-            # 3. Enhanced temporal processing with deadline management
             elif any(term in relation_type or term in relation_text for term in ['temporal', 'deadline', 'due', 'expires', 'schedule', 'period']):
                 temporal_key = f"temporal_{function_base_name}"
                 if temporal_key not in processed_relations:
@@ -558,7 +505,6 @@ class EnhancedSmartContractGenerator:
                         }
                     ])
                     
-                    # Add temporal tracking events
                     analysis['events'].extend([
                         {
                             'name': f'{function_base_name.title()}DeadlineSet',
@@ -573,7 +519,6 @@ class EnhancedSmartContractGenerator:
                     
                     processed_relations.add('temporal_management')
                     
-            # 4. Enhanced party relationship processing
             elif any(term in relation_type or term in relation_text for term in ['party', 'relationship', 'between', 'involves', 'connects']):
                 party_key = f"party_{function_base_name}"
                 if party_key not in processed_relations:
@@ -598,7 +543,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(party_key)
                     
-            # 5. Enhanced location and property relationships
             elif any(term in relation_type or term in relation_text for term in ['location', 'property', 'address', 'place', 'situated', 'located']):
                 location_key = f"location_{function_base_name}"
                 if location_key not in processed_relations:
@@ -623,7 +567,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(location_key)
                     
-            # 6. Enhanced agreement and contract relationships
             elif any(term in relation_type or term in relation_text for term in ['agreement', 'contract', 'terms', 'conditions', 'clause']):
                 agreement_key = f"agreement_{function_base_name}"
                 if agreement_key not in processed_relations:
@@ -648,7 +591,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(agreement_key)
                     
-            # 7. Enhanced service and work relationships
             elif any(term in relation_type or term in relation_text for term in ['service', 'work', 'deliver', 'perform', 'complete', 'provide']):
                 service_key = f"service_{function_base_name}"
                 if service_key not in processed_relations:
@@ -682,7 +624,6 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add(service_key)
             
-            # Enhanced access control processing  
             elif any(term in relation_type or term in relation_text for term in ['condition', 'if', 'when', 'require', 'depend']):
                 condition_id = self._generate_condition_id(relationship)
                 if condition_id not in processed_relations:
@@ -699,7 +640,6 @@ class EnhancedSmartContractGenerator:
                     })
                     processed_relations.add(condition_id)
             
-            # Enhanced temporal processing
             elif any(term in relation_type or term in relation_text for term in ['temporal', 'deadline', 'time', 'expire', 'schedule']):
                 if 'temporal_management' not in processed_relations:
                     analysis['functions'].extend([
@@ -720,19 +660,14 @@ class EnhancedSmartContractGenerator:
                     ])
                     processed_relations.add('temporal_management')
         
-        # COMPREHENSIVE RELATIONSHIP PROCESSING - Ensure EVERY relationship gets multiple functions
-        # Add individual relationship processors for maximum coverage
         for i, relationship in enumerate(relationships):
             relation_id = relationship.get('id', f"rel_{i}")
             relation_type = str(relationship.get('relation', '')).lower()
             relation_text = str(relationship.get('text', '')).lower()
             
-            # Generate unique function base name for this specific relationship
             function_base_name = self._generate_relationship_function_name(relationship, relation_type, relation_text)
             unique_key = f"individual_{function_base_name}_{i}"
             
-            # CRITICAL: Use simple, consistent variable naming to prevent Solidity compilation errors
-            # Declare required state variables for this relationship using simple naming
             required_state_vars = [
                 {
                     'name': f'relationship{i}Status',
@@ -772,14 +707,12 @@ class EnhancedSmartContractGenerator:
                 }
             ]
             
-            # Add state variables to analysis (prevent duplicates)
             existing_vars = {var['name'] for var in analysis['state_variables']}
             for var in required_state_vars:
                 if var['name'] not in existing_vars:
                     analysis['state_variables'].append(var)
                     existing_vars.add(var['name'])
             
-            # Add MULTIPLE functions for each relationship to maximize coverage
             relationship_functions = [
                 {
                     'name': f'process{function_base_name.title()}Relationship{i}',
@@ -860,7 +793,6 @@ class EnhancedSmartContractGenerator:
             
             analysis['functions'].extend(relationship_functions)
             
-            # Add individual relationship state variables with sanitized names
             sanitized_base = self._sanitize_variable_name(f'{function_base_name}_{i}')
             analysis['state_variables'].extend([
                 {
@@ -879,7 +811,6 @@ class EnhancedSmartContractGenerator:
                 }
             ])
             
-            # Add individual relationship events
             analysis['events'].extend([
                 {
                     'name': f'{function_base_name.title()}Relationship{i}Processed',
@@ -907,7 +838,6 @@ class EnhancedSmartContractGenerator:
             
             processed_relations.add(unique_key)
         
-        # Add comprehensive relationship management functions
         analysis['functions'].extend([
             {
                 'name': 'processAllRelationships',
@@ -933,7 +863,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add relationship coverage tracking variables
         analysis['state_variables'].extend([
             {
                 'name': 'totalRelationships',
@@ -955,10 +884,8 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Store relationship-to-function mapping for better coverage tracking
         self.relationship_to_function_mapping = {}
         for rel_key in processed_relations:
-            # Map processed relationships to generated functions
             matching_functions = [f for f in analysis['functions'] 
                                 if f.get('source_relationship') and 
                                 f['source_relationship'].get('id') and 
@@ -966,7 +893,6 @@ class EnhancedSmartContractGenerator:
             if matching_functions:
                 self.relationship_to_function_mapping[rel_key] = matching_functions
                 
-        # Calculate actual relationship coverage using all relationship functions
         relationship_functions = [f for f in analysis['functions'] 
                                  if 'relationship' in f.get('name', '').lower() or 
                                  'relationship' in f.get('description', '').lower() or
@@ -978,30 +904,22 @@ class EnhancedSmartContractGenerator:
         coverage_percent = (len(relationship_functions) / len(relationships) * 100) if relationships else 0
 
                 
-        # Add business relationship preservation - critical for relationship coverage
         self._add_relationship_preservation_functions(analysis, relationships)
         
-        # Add source-target relationship functions for better relationship mapping
         self._add_source_target_relationship_functions(analysis, relationships, entities)
         
-        # Add comprehensive business rule functions
         self._add_business_validation_functions(analysis)
         
-        # Add enhanced event system
         self._add_comprehensive_events(analysis, relationships)
         
-        # Add standard functions with enhancements
         self._add_standard_functions(analysis)
         
-        # Ensure all names are unique to prevent compilation errors
         self._ensure_unique_names(analysis)
         
         return analysis
     
     def _add_business_validation_functions(self, analysis: Dict[str, Any]):
-        """Add comprehensive business rule validation functions"""
         
-        # Payment validation functions
         if self.financial_elements:
             analysis['functions'].extend([
                 {
@@ -1020,7 +938,6 @@ class EnhancedSmartContractGenerator:
                 }
             ])
         
-        # Access control validation
         if self.parties:
             analysis['functions'].append({
                 'name': 'validatePartyAuthorization',
@@ -1030,7 +947,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'access_validation'
             })
         
-        # Temporal validation functions
         if self.temporal_elements:
             analysis['functions'].extend([
                 {
@@ -1049,7 +965,6 @@ class EnhancedSmartContractGenerator:
                 }
             ])
         
-        # Obligation validation
         if self.obligations:
             analysis['functions'].extend([
                 {
@@ -1069,9 +984,7 @@ class EnhancedSmartContractGenerator:
             ])
     
     def _add_comprehensive_events(self, analysis: Dict[str, Any], relationships: List[Dict[str, Any]]):
-        """Add comprehensive event system for contract transparency"""
         
-        # Financial events
         analysis['events'].extend([
             {
                 'name': 'PaymentProcessed',
@@ -1094,7 +1007,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Obligation events
         analysis['events'].extend([
             {
                 'name': 'ObligationAssigned',
@@ -1117,7 +1029,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Access control events
         analysis['events'].extend([
             {
                 'name': 'UnauthorizedAccess',
@@ -1139,12 +1050,10 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add additional relationship processing for ownership transfers
         for relationship in relationships:
             relation_type = str(relationship.get('relation', '')).lower()
             
             if relation_type in ['ownership']:
-                # Ownership relationships become transfer functions
                 analysis['functions'].append({
                     'name': 'transferOwnership',
                     'description': 'Transfer ownership of assets',
@@ -1155,7 +1064,6 @@ class EnhancedSmartContractGenerator:
                 })
                 
             elif relation_type in ['temporal_start', 'temporal_end']:
-                # Temporal relationships become time-based functions
                 analysis['functions'].append({
                     'name': 'checkTemporalCondition',
                     'description': 'Check if temporal conditions are met',
@@ -1165,15 +1073,12 @@ class EnhancedSmartContractGenerator:
                     'function_type': 'temporal_check'
                 })
         
-        # Add common contract management functions
         self._add_standard_functions(analysis)
         
         return analysis
     
     def _add_standard_functions(self, analysis: Dict[str, Any]):
-        """Add comprehensive standard contract management functions and elements"""
         
-        # Enhanced Constructor with party initialization
         constructor_params = []
         if hasattr(self, 'parties') and self.parties:
             for party in self.parties:
@@ -1187,7 +1092,6 @@ class EnhancedSmartContractGenerator:
             'function_type': 'constructor'
         })
         
-        # Enhanced contract status and management functions
         analysis['functions'].extend([
             {
                 'name': 'isContractActive',
@@ -1220,7 +1124,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add essential modifiers for access control
         analysis['modifiers'].extend([
             {
                 'name': 'onlyActiveContract',
@@ -1236,7 +1139,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add comprehensive events for transparency
         analysis['events'].extend([
             {
                 'name': 'ContractActivated',
@@ -1292,7 +1194,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add contract status variables (prevent duplicates)
         existing_vars = {var['name'] for var in analysis['state_variables']}
         
         if 'contractActive' not in existing_vars:
@@ -1335,7 +1236,6 @@ class EnhancedSmartContractGenerator:
                 'visibility': 'public'
             })
         
-        # Add standard modifiers
         analysis['modifiers'].extend([
             {
                 'name': 'onlyActiveContract',
@@ -1347,7 +1247,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Add standard events
         analysis['events'].extend([
             {
                 'name': 'ContractActivated',
@@ -1367,20 +1266,16 @@ class EnhancedSmartContractGenerator:
         ])
     
     def _build_contract_structure(self, analysis: Dict[str, Any], contract_name: str) -> str:
-        """Build the complete Solidity contract code"""
         
         code = []
         
-        # SPDX License and Pragma
         code.append("// SPDX-License-Identifier: MIT")
         code.append("pragma solidity ^0.8.19;")
         code.append("")
         
-        # Contract declaration
         code.append(f"contract {contract_name} {{")
         code.append("")
         
-        # State variables
         if analysis['state_variables']:
             code.append("    // State Variables")
             for var in analysis['state_variables']:
@@ -1390,7 +1285,6 @@ class EnhancedSmartContractGenerator:
                 code.append(var_line)
             code.append("")
         
-        # Events
         if analysis['events']:
             code.append("    // Events")
             for event in analysis['events']:
@@ -1403,7 +1297,6 @@ class EnhancedSmartContractGenerator:
                 code.append(event_line)
             code.append("")
         
-        # Modifiers
         if analysis['modifiers']:
             code.append("    // Modifiers")
             for modifier in analysis['modifiers']:
@@ -1418,30 +1311,25 @@ class EnhancedSmartContractGenerator:
                 code.append("    }")
                 code.append("")
         
-        # Functions
         if analysis['functions']:
             code.append("    // Functions")
             for func in analysis['functions']:
                 code.extend(self._generate_function_code(func))
                 code.append("")
         
-        # Close contract
         code.append("}")
         
         return "\n".join(code)
     
     def _generate_function_code(self, func: Dict[str, Any]) -> List[str]:
-        """Generate code for a specific function"""
         lines = []
         
-        # Function signature
         signature_parts = [func['visibility']]
         if func.get('payable'):
             signature_parts.append('payable')
         if func.get('returns'):
             signature_parts.append(f"returns ({func['returns']})")
         
-        # Special handling for constructor
         if func.get('function_type') == 'constructor':
             signature = f"    constructor() {' '.join(signature_parts)} {{"
         else:
@@ -1451,7 +1339,6 @@ class EnhancedSmartContractGenerator:
             signature += f" // {func['description']}"
         lines.append(signature)
         
-        # Function body based on type
         function_type = func.get('function_type', '')
         
         if function_type == 'constructor':
@@ -1478,7 +1365,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'obligation_fulfillment':
-            # Use a generic completion tracking approach
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        // TODO: Track obligation completion',
@@ -1500,7 +1386,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'relationship_processor':
-            # Handle relationship processing functions
             rel_name = func['name'].replace('process', '').replace('Relationships', '')
             count_var = f"{rel_name.lower()}Count"
             event_name = f"{rel_name}RelationshipProcessed"
@@ -1512,7 +1397,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'relationship_validator':
-            # Handle relationship validation functions
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        // Validate relationship consistency',
@@ -1520,7 +1404,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'relationship_executor':
-            # Handle source-target relationship execution
             status_var = func['name'].replace('execute', '').replace('Relationship', '') + 'Status'
             event_name = func['name'].replace('execute', '').replace('Relationship', '') + 'RelationshipExecuted'
             lines.extend([
@@ -1532,7 +1415,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_rule_processor':
-            # Handle business rule processing functions
             rule_name = func['name'].replace('process', '').replace('BusinessRules', '')
             count_var = f"{rule_name.lower()}RulesCount"
             event_name = f"{rule_name}BusinessRuleExecuted"
@@ -1546,7 +1428,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_rule_validator':
-            # Handle business rule validation functions
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        // Validate business rule compliance',
@@ -1554,7 +1435,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_rule_enforcer':
-            # Handle business rule enforcement functions
             rule_name = func['name'].replace('enforce', '').replace('BusinessRules', '')
             event_name = f"{rule_name}BusinessRuleExecuted"
             lines.extend([
@@ -1566,7 +1446,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'contract_initialization':
-            # Handle contract initialization
             lines.extend([
                 '        require(!contractInitialized, "Contract already initialized");',
                 '        contractInitialized = true;',
@@ -1578,13 +1457,11 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'contract_validation':
-            # Handle contract validation
             lines.extend([
                 '        return contractInitialized && contractActive && contractCompletionPercentage >= 95;'
             ])
             
         elif function_type == 'contract_execution':
-            # Handle contract execution
             lines.extend([
                 '        require(contractInitialized, "Contract not initialized");',
                 '        require(contractActive, "Contract must be active");',
@@ -1595,7 +1472,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'contract_audit':
-            # Handle contract audit
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        // Perform comprehensive contract audit',
@@ -1603,23 +1479,19 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'contract_status':
-            # Handle contract status
             lines.extend([
                 '        return contractCompletionPercentage;'
             ])
             
         elif function_type == 'individual_relationship_processor':
-            # Use simple, consistent variable naming to prevent Solidity compilation errors
             func_name = func['name']
             rel_number = func_name.split('Relationship')[-1] if 'Relationship' in func_name else '1'
             
-            # Use the state variables that were declared in state_vars_used
             state_vars = func.get('state_vars_used', [])
             if state_vars:
                 var_name = state_vars[0]  # Use the declared state variable
                 timestamp_name = var_name.replace('Status', 'Timestamp')
             else:
-                # Fallback to simple naming
                 var_name = f"relationship{rel_number}Status"
                 timestamp_name = f"relationship{rel_number}Timestamp"
             
@@ -1635,11 +1507,9 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'individual_relationship_validator':
-            # Use declared state variables to prevent Solidity compilation errors
             func_name = func['name']
             rel_number = func_name.split('Relationship')[-1] if 'Relationship' in func_name else '1'
             
-            # Use the state variables that were declared in state_vars_used
             state_vars = func.get('state_vars_used', [])
             if state_vars:
                 var_name = state_vars[0]  # Use the declared state variable
@@ -1652,9 +1522,7 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'individual_relationship_executor':
-            # Handle individual relationship execution with proper variable naming
             rel_id = func['name'].split('Relationship')[-1] if 'Relationship' in func['name'] else '1'
-            # Get the source relationship to find the correct variable names
             source_rel = func.get('source_relationship', {})
             if source_rel:
                 relation_type = str(source_rel.get('relation', '')).lower()
@@ -1665,11 +1533,9 @@ class EnhancedSmartContractGenerator:
                 base_name = func_parts[0].replace('execute', '') if func_parts else 'Relation'
                 sanitized_base = self._sanitize_variable_name(f'{base_name}_{rel_id}')
             
-            # Use declared state variables to prevent Solidity compilation errors
             func_name = func['name']
             rel_number = func_name.split('Relationship')[-1] if 'Relationship' in func_name else '1'
             
-            # Use the state variables that were declared in state_vars_used
             state_vars = func.get('state_vars_used', [])
             if state_vars:
                 var_name = state_vars[0]  # Use the declared state variable
@@ -1684,9 +1550,7 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'individual_relationship_status':
-            # Handle individual relationship status with proper variable naming
             rel_id = func['name'].split('Relationship')[-1] if 'Relationship' in func['name'] else '1'
-            # Get the source relationship to find the correct variable names
             source_rel = func.get('source_relationship', {})
             if source_rel:
                 relation_type = str(source_rel.get('relation', '')).lower()
@@ -1697,11 +1561,9 @@ class EnhancedSmartContractGenerator:
                 base_name = func_parts[0].replace('get', '').replace('Status', '') if func_parts else 'Relation'
                 sanitized_base = self._sanitize_variable_name(f'{base_name}_{rel_id}')
             
-            # Use declared state variables to prevent Solidity compilation errors
             func_name = func['name']
             rel_number = func_name.split('Relationship')[-1].replace('Status', '') if 'Relationship' in func_name else '1'
             
-            # Use the state variables that were declared in state_vars_used
             state_vars = func.get('state_vars_used', [])
             if state_vars:
                 var_name = state_vars[0]  # Use the declared state variable
@@ -1713,7 +1575,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'all_relationships_processor':
-            # Handle processing all relationships
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        require(contractInitialized, "Contract not initialized");',
@@ -1724,19 +1585,16 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'all_relationships_validator':
-            # Handle validating all relationships
             lines.extend([
                 '        return relationshipCoveragePercentage >= 95;'
             ])
             
         elif function_type == 'relationship_coverage_calculator':
-            # Handle relationship coverage calculation
             lines.extend([
                 '        return relationshipCoveragePercentage;'
             ])
             
         elif function_type == 'business_validation':
-            # Handle business relationship validation
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        businessRelationshipsEstablished = processedRelationships;',
@@ -1746,7 +1604,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_metrics':
-            # Handle business relationship metrics
             lines.extend([
                 '        return string(abi.encodePacked(',
                 '            "Business Relationships: ", businessRelationshipsEstablished, "/", totalRelationships,',
@@ -1756,7 +1613,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_enforcement':
-            # Handle business rules enforcement
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        require(businessRelationshipsEstablished > 0, "No business relationships established");',
@@ -1766,7 +1622,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'connectivity_metrics':
-            # Handle relationship connectivity metrics
             lines.extend([
                 '        uint256 totalEntities = connectedEntities + isolatedEntities;',
                 '        return string(abi.encodePacked(',
@@ -1777,7 +1632,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'entity_validation':
-            # Handle entity connection validation
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        connectedEntities = businessRelationshipsEstablished * 2;',
@@ -1786,7 +1640,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'obligation_enforcement':
-            # Handle obligation enforcement
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        require(businessRelationshipsEstablished > 0, "No business relationships to enforce");',
@@ -1801,7 +1654,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'compliance_validation':
-            # Handle compliance validation
             lines.extend([
                 '        require(contractActive, "Contract must be active");',
                 '        lastComplianceCheck = block.timestamp;',
@@ -1815,7 +1667,6 @@ class EnhancedSmartContractGenerator:
             ])
             
         elif function_type == 'business_audit':
-            # Handle business logic audit
             lines.extend([
                 '        return string(abi.encodePacked(',
                 '            "Business Audit Report - ",',
@@ -1837,27 +1688,21 @@ class EnhancedSmartContractGenerator:
         return lines
     
     def _sanitize_variable_name(self, text: str) -> str:
-        """Convert entity text to valid Solidity variable name"""
         import hashlib
         
-        # Remove non-alphanumeric characters and convert to camelCase
         words = re.findall(r'\b\w+\b', str(text).lower())
         if not words:
-            # Generate unique name from hash to avoid duplicates
             hash_suffix = hashlib.md5(str(text).encode()).hexdigest()[:6]
             return f'entity{hash_suffix.capitalize()}'
         
-        # Take first 3 meaningful words and create camelCase
         meaningful_words = [w for w in words if len(w) > 2 and w not in ['the', 'and', 'or', 'but', 'for', 'with', 'this', 'that']]
         if not meaningful_words:
             meaningful_words = words[:2]  # Take first 2 if no meaningful words
         
-        # First word lowercase, rest title case, limit to 3 words
         name = meaningful_words[0]
         for word in meaningful_words[1:3]:  # Max 3 words
             name += word.capitalize()
         
-        # Check for Solidity reserved keywords and fix them
         solidity_keywords = {
             'contract', 'function', 'modifier', 'event', 'struct', 'enum',
             'mapping', 'address', 'uint', 'uint256', 'int', 'int256', 
@@ -1871,11 +1716,9 @@ class EnhancedSmartContractGenerator:
         if name.lower() in solidity_keywords:
             name = f"{name}Value"
         
-        # Ensure it's a valid identifier
         if not name or name[0].isdigit():
             name = 'var' + name.capitalize()
         
-        # Add unique suffix if needed to prevent duplicates
         if hasattr(self, '_used_names'):
             if name in self._used_names:
                 counter = 1
@@ -1889,7 +1732,6 @@ class EnhancedSmartContractGenerator:
         return name
     
     def get_generation_statistics(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """Get statistics about the generated contract"""
         return {
             'state_variables': len(analysis.get('state_variables', [])),
             'functions': len(analysis.get('functions', [])),
@@ -1904,7 +1746,6 @@ class EnhancedSmartContractGenerator:
         }
 
     def _determine_entity_role(self, entity_text: str) -> str:
-        """Determine the role of a party entity"""
         entity_lower = str(entity_text).lower()
         if any(term in entity_lower for term in ['tenant', 'renter', 'lessee']):
             return 'tenant'
@@ -1924,7 +1765,6 @@ class EnhancedSmartContractGenerator:
             return 'party'
 
     def _extract_financial_context(self, entity_text: str) -> str:
-        """Extract financial context from entity text"""
         entity_lower = str(entity_text).lower()
         if any(term in entity_lower for term in ['salary', 'wage', 'compensation']):
             return 'salary'
@@ -1940,7 +1780,6 @@ class EnhancedSmartContractGenerator:
             return 'amount'
 
     def _generate_financial_variable_name(self, entity_text: str, context: str) -> str:
-        """Generate appropriate variable name for financial elements"""
         base_name = context
         if 'monthly' in str(entity_text).lower():
             base_name += 'Monthly'
@@ -1949,7 +1788,6 @@ class EnhancedSmartContractGenerator:
         return self._sanitize_variable_name(base_name)
 
     def _extract_temporal_context(self, entity_text: str) -> str:
-        """Extract temporal context from entity text"""
         entity_lower = str(entity_text).lower()
         if any(term in entity_lower for term in ['start', 'begin', 'commence']):
             return 'start_date'
@@ -1965,11 +1803,9 @@ class EnhancedSmartContractGenerator:
             return 'timestamp'
 
     def _generate_temporal_variable_name(self, entity_text: str, context: str) -> str:
-        """Generate appropriate variable name for temporal elements"""
         return self._sanitize_variable_name(context)
     
     def _determine_authorization_level(self, role: str) -> str:
-        """Determine authorization level based on party role"""
         role_lower = str(role).lower()
         if any(term in role_lower for term in ['landlord', 'lessor', 'employer', 'owner']):
             return 'high'
@@ -1979,15 +1815,12 @@ class EnhancedSmartContractGenerator:
             return 'basic'
 
     def _determine_responsible_party(self, obligation_text: str, parties: List[Dict]) -> str:
-        """Determine which party is responsible for an obligation"""
         obligation_lower = str(obligation_text).lower()
         
-        # Check if obligation text mentions specific parties
         for party in parties:
             if str(party['name']).lower() in obligation_lower or str(party['role']).lower() in obligation_lower:
                 return party['role']
         
-        # Default responsibility based on common patterns
         if any(term in obligation_lower for term in ['tenant', 'renter']):
             return 'tenant'
         elif any(term in obligation_lower for term in ['landlord', 'owner']):
@@ -2000,29 +1833,22 @@ class EnhancedSmartContractGenerator:
             return 'party'
     
     def _generate_obligation_id(self, obligation: str) -> str:
-        """Generate a unique identifier for an obligation"""
         import re
-        # Extract key words from obligation
         words = re.findall(r'\w+', str(obligation).lower())
-        # Take first few significant words
         key_words = [w for w in words if len(w) > 3][:3]
         if not key_words:
             key_words = ['obligation']
         return '_'.join(key_words)
     
     def _generate_condition_id(self, condition: str) -> str:
-        """Generate a unique identifier for a condition"""
         import re
-        # Extract key words from condition
         words = re.findall(r'\w+', str(condition).lower())
-        # Take first few significant words
         key_words = [w for w in words if len(w) > 3][:3]
         if not key_words:
             key_words = ['condition']
         return '_'.join(key_words)
     
     def _add_relationship_preservation_functions(self, analysis: Dict[str, Any], relationships: List[Dict]) -> None:
-        """Add functions to preserve business relationships and improve relationship coverage"""
         
         relationship_types = {}
         for rel in relationships:
@@ -2031,14 +1857,12 @@ class EnhancedSmartContractGenerator:
                 relationship_types[rel_type] = []
             relationship_types[rel_type].append(rel)
         
-        # Generate relationship tracking functions for each relationship type
         for rel_type, rel_list in relationship_types.items():
             if len(rel_list) == 0:
                 continue
                 
             sanitized_type = self._sanitize_variable_name(rel_type)
             
-            # Add relationship tracking state variable
             analysis['state_variables'].append({
                 'name': f'{sanitized_type}Count',
                 'type': 'uint256',
@@ -2047,7 +1871,6 @@ class EnhancedSmartContractGenerator:
                 'source_relationships': rel_list
             })
             
-            # Add relationship processing function
             analysis['functions'].append({
                 'name': f'process{sanitized_type.title()}Relationships',
                 'description': f'Process all {rel_type} relationships from business contract',
@@ -2058,7 +1881,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'relationship_processor'
             })
             
-            # Add relationship validation function
             analysis['functions'].append({
                 'name': f'validate{sanitized_type.title()}Relationships',
                 'description': f'Validate {rel_type} relationship consistency',
@@ -2068,7 +1890,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'relationship_validator'
             })
             
-            # Add relationship event
             analysis['events'].append({
                 'name': f'{sanitized_type.title()}RelationshipProcessed',
                 'description': f'Emitted when {rel_type} relationship is processed',
@@ -2081,12 +1902,9 @@ class EnhancedSmartContractGenerator:
             })
     
     def _add_source_target_relationship_functions(self, analysis: Dict[str, Any], relationships: List[Dict], entities: List[Dict]) -> None:
-        """Add functions that map source-target relationships for better coverage"""
         
-        # Create entity lookup for better naming
         entity_lookup = {e.get('id', ''): e.get('text', 'Unknown') for e in entities}
         
-        # Group relationships by source-target pairs
         source_target_pairs = {}
         for rel in relationships[:20]:  # Limit to prevent over-generation
             source_id = rel.get('source', '')
@@ -2098,7 +1916,6 @@ class EnhancedSmartContractGenerator:
                     source_target_pairs[pair_key] = []
                 source_target_pairs[pair_key].append(rel)
         
-        # Generate functions for each source-target pair
         for pair_key, pair_relations in source_target_pairs.items():
             source_id, target_id = pair_key.split('_', 1)
             source_name = self._sanitize_variable_name(entity_lookup.get(source_id, 'Source'))
@@ -2106,7 +1923,6 @@ class EnhancedSmartContractGenerator:
             
             function_base = f'{source_name}To{target_name.title()}'
             
-            # Add relationship execution function
             analysis['functions'].append({
                 'name': f'execute{function_base}Relationship',
                 'description': f'Execute relationship between {source_name} and {target_name}',
@@ -2117,7 +1933,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'relationship_executor'
             })
             
-            # Add relationship state variable
             analysis['state_variables'].append({
                 'name': f'{function_base}Status',
                 'type': 'bool',
@@ -2126,7 +1941,6 @@ class EnhancedSmartContractGenerator:
                 'source_relationships': pair_relations
             })
             
-            # Add relationship event
             analysis['events'].append({
                 'name': f'{function_base}RelationshipExecuted',
                 'description': f'Emitted when {source_name} to {target_name} relationship is executed',
@@ -2139,9 +1953,7 @@ class EnhancedSmartContractGenerator:
             })
     
     def _add_comprehensive_business_logic_functions(self, analysis: Dict[str, Any], relationships: List[Dict], entities: List[Dict]) -> None:
-        """Add comprehensive business logic functions for complete business rule preservation"""
         
-        # Business Rule Categories - Critical for business logic preservation
         business_categories = {
             'financial_rules': [],
             'temporal_rules': [],
@@ -2152,7 +1964,6 @@ class EnhancedSmartContractGenerator:
             'compliance_rules': []
         }
         
-        # Classify relationships into business rule categories
         for relationship in relationships:
             relation_type = str(relationship.get('relation', '')).lower()
             relation_text = str(relationship.get('text', '')).lower()
@@ -2172,14 +1983,12 @@ class EnhancedSmartContractGenerator:
             else:
                 business_categories['compliance_rules'].append(relationship)
         
-        # Generate comprehensive business logic functions for each category
         for category, category_relationships in business_categories.items():
             if not category_relationships:
                 continue
                 
             category_name = category.replace('_rules', '').title()
             
-            # Add business rule processor
             analysis['functions'].append({
                 'name': f'process{category_name}BusinessRules',
                 'description': f'Process all {category_name.lower()} business rules from contract',
@@ -2190,7 +1999,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'business_rule_processor'
             })
             
-            # Add business rule validator
             analysis['functions'].append({
                 'name': f'validate{category_name}BusinessRules',
                 'description': f'Validate all {category_name.lower()} business rule compliance',
@@ -2200,7 +2008,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'business_rule_validator'
             })
             
-            # Add business rule enforcer
             analysis['functions'].append({
                 'name': f'enforce{category_name}BusinessRules',
                 'description': f'Enforce {category_name.lower()} business rule compliance with penalties',
@@ -2211,7 +2018,6 @@ class EnhancedSmartContractGenerator:
                 'function_type': 'business_rule_enforcer'
             })
             
-            # Add business rule tracking variable
             analysis['state_variables'].append({
                 'name': f'{category_name.lower()}RulesCount',
                 'type': 'uint256',
@@ -2220,7 +2026,6 @@ class EnhancedSmartContractGenerator:
                 'source_relationships': category_relationships
             })
             
-            # Add business rule event
             analysis['events'].append({
                 'name': f'{category_name}BusinessRuleExecuted',
                 'description': f'Emitted when {category_name.lower()} business rule is executed',
@@ -2233,13 +2038,10 @@ class EnhancedSmartContractGenerator:
                 'source_relationships': category_relationships
             })
         
-        # Add comprehensive contract completeness functions
         self._add_contract_completeness_functions(analysis, relationships, entities)
     
     def _add_contract_completeness_functions(self, analysis: Dict[str, Any], relationships: List[Dict], entities: List[Dict]) -> None:
-        """Add functions to ensure contract completeness and comprehensive business coverage"""
         
-        # Contract lifecycle management functions
         lifecycle_functions = [
             {
                 'name': 'initializeContractTerms',
@@ -2283,7 +2085,6 @@ class EnhancedSmartContractGenerator:
         
         analysis['functions'].extend(lifecycle_functions)
         
-        # Add contract completeness tracking variables
         completeness_variables = [
             {
                 'name': 'contractCompletionPercentage',
@@ -2313,7 +2114,6 @@ class EnhancedSmartContractGenerator:
         
         analysis['state_variables'].extend(completeness_variables)
         
-        # Add contract completeness events
         completeness_events = [
             {
                 'name': 'ContractInitialized',
@@ -2346,25 +2146,19 @@ class EnhancedSmartContractGenerator:
         
         analysis['events'].extend(completeness_events)
         
-        # Add enhanced business logic functions
         self._add_enhanced_business_logic_functions(analysis, relationships, entities)
     
     def _generate_relationship_function_name(self, relationship: Dict, relation_type: str, relation_text: str) -> str:
-        """Generate meaningful function names from relationship data"""
         import re
         
-        # Extract source and target for context
         source = str(relationship.get('source', '')).lower()
         target = str(relationship.get('target', '')).lower()
         
-        # Start with relation type or text
         base_name = relation_type if relation_type and relation_type != 'unknown' else relation_text
         
-        # Clean and extract meaningful words
         words = re.findall(r'\w+', str(base_name).lower())
         meaningful_words = [w for w in words if len(w) > 2 and w not in ['the', 'and', 'or', 'but', 'for', 'with']]
         
-        # Add source/target context if available
         if source and meaningful_words:
             source_words = re.findall(r'\w+', source)
             if source_words:
@@ -2375,7 +2169,6 @@ class EnhancedSmartContractGenerator:
             if target_words and len(meaningful_words) < 3:
                 meaningful_words.append(target_words[0])
         
-        # Take the first 3 meaningful words and create camelCase
         if not meaningful_words:
             meaningful_words = ['relationship']
         
@@ -2386,10 +2179,8 @@ class EnhancedSmartContractGenerator:
         return self._sanitize_variable_name(function_name)
     
     def _ensure_unique_names(self, contract_elements):
-        """Ensure all names are unique within the contract"""
         used_names = set()
         
-        # Track state variables
         for var in contract_elements.get('state_variables', []):
             original_name = var['name']
             if original_name in used_names:
@@ -2401,7 +2192,6 @@ class EnhancedSmartContractGenerator:
                 var['name'] = new_name
             used_names.add(var['name'])
         
-        # Track function names
         for func in contract_elements.get('functions', []):
             original_name = func['name']
             if original_name in used_names:
@@ -2413,7 +2203,6 @@ class EnhancedSmartContractGenerator:
                 func['name'] = new_name
             used_names.add(func['name'])
             
-        # Track modifier names  
         for mod in contract_elements.get('modifiers', []):
             original_name = mod['name']
             if original_name in used_names:
@@ -2425,7 +2214,6 @@ class EnhancedSmartContractGenerator:
                 mod['name'] = new_name
             used_names.add(mod['name'])
             
-        # Track event names
         for event in contract_elements.get('events', []):
             original_name = event['name']
             if original_name in used_names:
@@ -2438,14 +2226,11 @@ class EnhancedSmartContractGenerator:
             used_names.add(event['name'])
     
     def _normalize_relationships(self, relationships):
-        """Normalize relationships to ensure consistent dictionary format"""
         normalized = []
         for relationship in relationships:
             if isinstance(relationship, dict):
-                # Already in correct format
                 normalized.append(relationship)
             else:
-                # Convert string to dictionary format
                 relation_str = str(relationship)
                 normalized.append({
                     'relation': relation_str,
@@ -2457,14 +2242,11 @@ class EnhancedSmartContractGenerator:
         return normalized
     
     def _normalize_entities(self, entities):
-        """Normalize entities to ensure consistent dictionary format"""
         normalized = []
         for entity in entities:
             if isinstance(entity, dict):
-                # Already in correct format
                 normalized.append(entity)
             else:
-                # Convert string to dictionary format
                 entity_str = str(entity)
                 normalized.append({
                     'text': entity_str,
@@ -2476,9 +2258,7 @@ class EnhancedSmartContractGenerator:
         return normalized
     
     def _add_enhanced_business_logic_functions(self, analysis: Dict[str, Any], relationships: List[Dict], entities: List[Dict]):
-        """Add sophisticated business logic functions for comprehensive relationship management"""
         
-        # Business relationship validation functions
         analysis['functions'].extend([
             {
                 'name': 'validateBusinessRelationships',
@@ -2504,7 +2284,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Business state tracking variables
         analysis['state_variables'].extend([
             {
                 'name': 'businessRelationshipsEstablished',
@@ -2526,7 +2305,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Business relationship events
         analysis['events'].extend([
             {
                 'name': 'BusinessRelationshipValidated',
@@ -2550,12 +2328,10 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Enhanced relationship connectivity functions
         relationship_count = len(relationships)
         entity_count = len(entities)
         
         if relationship_count > 0 and entity_count > 0:
-            # Add connectivity metrics
             analysis['functions'].extend([
                 {
                     'name': 'getRelationshipConnectivity',
@@ -2573,7 +2349,6 @@ class EnhancedSmartContractGenerator:
                 }
             ])
             
-            # Connectivity state variables
             analysis['state_variables'].extend([
                 {
                     'name': 'connectedEntities',
@@ -2595,13 +2370,10 @@ class EnhancedSmartContractGenerator:
                 }
             ])
             
-        # Add business rule enforcement mechanisms
         self._add_business_rule_enforcement_mechanisms(analysis, relationships, entities)
     
     def _add_business_rule_enforcement_mechanisms(self, analysis: Dict[str, Any], relationships: List[Dict], entities: List[Dict]):
-        """Add comprehensive business rule enforcement mechanisms"""
         
-        # Obligation enforcement functions
         analysis['functions'].extend([
             {
                 'name': 'enforceObligations',
@@ -2627,7 +2399,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Penalty and enforcement state variables
         analysis['state_variables'].extend([
             {
                 'name': 'obligationViolations',
@@ -2649,7 +2420,6 @@ class EnhancedSmartContractGenerator:
             }
         ])
         
-        # Enforcement events
         analysis['events'].extend([
             {
                 'name': 'ObligationEnforced',

@@ -1,7 +1,3 @@
-"""
-Enhanced Comparator with Business-to-Technical Entity Mapping
-Fixed version without embedded newline literals
-"""
 
 from typing import Dict, Any, List, Tuple, Optional, Set
 import difflib
@@ -22,9 +18,6 @@ except ImportError:
     from utils.file_handler import FileHandler
 
 class KnowledgeGraphComparator:
-    """
-    Enhanced comparator with business-to-technical entity mapping
-    """
     
     def __init__(self):
         self.econtract_processor = EContractProcessor()
@@ -33,7 +26,6 @@ class KnowledgeGraphComparator:
     
     def compare_knowledge_graphs(self, g_e: KnowledgeGraph, g_s: KnowledgeGraph, 
                                 comparison_id: str = None) -> Dict[str, Any]:
-        """Enhanced knowledge graph comparison with business-to-technical mapping"""
         if comparison_id is None:
             comparison_id = f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
@@ -41,25 +33,20 @@ class KnowledgeGraphComparator:
         print(f"E-contract sample entities: {list(g_e.entities.keys())[:5]}")
         print(f"Smart contract sample entities: {list(g_s.entities.keys())[:5]}")
         
-        # Step 1: Enhanced entity matching
         entity_matches = self._match_entities(g_e.entities, g_s.entities)
         print(f"Found {len(entity_matches)} entity matches")
         
-        # Step 2: Enhanced relationship matching  
         relation_matches = self._match_relations(g_e.relationships, g_s.relationships)
         print(f"Found {len(relation_matches)} relationship matches")
         
-        # Step 3: Calculate preservation metrics
         entity_preservation = self._calculate_entity_preservation(g_e.entities, g_s.entities, entity_matches)
         relation_preservation = self._calculate_relation_preservation(g_e.relationships, g_s.relationships, relation_matches)
         
-        # Step 4: Calculate accuracy metrics
         accuracy_data = self._calculate_accuracy_score(g_e, g_s, {
             'entity_matches': entity_matches, 
             'relationship_matches': relation_matches
         })
         
-        # Step 5: Generate detailed comparison report  
         overall_similarity = (entity_preservation + relation_preservation) / 2
         
         comparison_report = {
@@ -71,7 +58,6 @@ class KnowledgeGraphComparator:
             'overall_similarity_score': overall_similarity,
             'timestamp': datetime.now().isoformat(),
             
-            # GUI expects these structures
             'summary': {
                 'overall_similarity_score': overall_similarity,
                 'total_entity_matches': len(entity_matches),
@@ -96,14 +82,12 @@ class KnowledgeGraphComparator:
             
             'recommendations': self._generate_enhanced_recommendations(overall_similarity, accuracy_data, len(entity_matches), len(relation_matches)),
             
-            # Enhanced accuracy and deployment readiness
             'accuracy_analysis': accuracy_data
         }
         
         return comparison_report
     
     def _analyze_match_quality(self, entity_matches: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Analyze the quality distribution of entity matches"""
         quality_dist = {'high_quality': 0, 'medium_quality': 0, 'low_quality': 0}
         
         for match in entity_matches:
@@ -118,7 +102,6 @@ class KnowledgeGraphComparator:
         return quality_dist
     
     def _generate_recommendations(self, similarity: float, entity_matches: int, relation_matches: int) -> List[str]:
-        """Generate recommendations based on comparison results"""
         recommendations = []
         
         if similarity < 0.3:
@@ -134,10 +117,8 @@ class KnowledgeGraphComparator:
 
     def _generate_enhanced_recommendations(self, similarity: float, accuracy_data: Dict[str, Any], 
                                          entity_matches: int, relation_matches: int) -> List[str]:
-        """Generate enhanced recommendations based on comprehensive analysis"""
         recommendations = []
         
-        # Accuracy-based recommendations
         accuracy_score = accuracy_data.get('accuracy_score', 0)
         if accuracy_score < 0.3:
             recommendations.append("🔴 CRITICAL: Smart contract requires major redesign - business logic poorly represented")
@@ -148,14 +129,12 @@ class KnowledgeGraphComparator:
         elif accuracy_score > 0.8:
             recommendations.append("✅ EXCELLENT: Smart contract accurately represents business logic")
         
-        # Entity coverage recommendations
         entity_coverage = accuracy_data.get('entity_coverage', 0)
         if entity_coverage < 0.5:
             recommendations.append("🎯 Add missing business entities: parties, financial amounts, temporal constraints")
         elif entity_coverage < 0.8:
             recommendations.append("📊 Improve entity representation with more comprehensive variable mapping")
         
-        # Relationship preservation recommendations
         relation_coverage = accuracy_data.get('relation_coverage', 0)
         if relation_coverage < 0.3:
             recommendations.append("🔗 PRIORITY: Model business relationships as smart contract functions")
@@ -163,26 +142,22 @@ class KnowledgeGraphComparator:
         elif relation_coverage < 0.6:
             recommendations.append("🔧 Enhance function interactions to better reflect business workflows")
         
-        # Business logic recommendations
         business_logic_score = accuracy_data.get('business_logic_score', 0)
         if business_logic_score < 0.4:
             recommendations.append("💼 Add business rule validation (payment conditions, termination clauses)")
             recommendations.append("🛡️ Implement access controls for different contract parties")
         
-        # Completeness recommendations
         completeness_score = accuracy_data.get('completeness_score', 0)
         if completeness_score < 0.5:
             recommendations.append("🏗️ Add missing contract elements: constructor, events, modifiers")
             recommendations.append("📝 Include comprehensive state management functions")
         
-        # Deployment readiness
         if not accuracy_data.get('deployment_ready', False):
             recommendations.append("⚠️ CONTRACT NOT DEPLOYMENT-READY: Address above issues before deployment")
             recommendations.append("🧪 Implement thorough testing for all business scenarios")
         else:
             recommendations.append("🚀 CONTRACT READY: Suitable for deployment after security audit")
         
-        # Similarity-based recommendations (enhanced)
         if similarity < 0.4:
             recommendations.append("🎨 Consider using contract templates that better match your business domain")
         elif similarity > 0.7:
@@ -191,7 +166,6 @@ class KnowledgeGraphComparator:
         return recommendations
     
     def _match_entities(self, entities_e: Dict[str, Any], entities_s: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Enhanced entity matching with business-to-technical mapping"""
         matches = []
         
         e_entities = [{'id': eid, **data} for eid, data in entities_e.items()]
@@ -219,7 +193,6 @@ class KnowledgeGraphComparator:
         return matches
     
     def _calculate_entity_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Enhanced entity similarity with business-to-technical mapping"""
         score = 0.0
         
         text_e = e_entity.get('text', '').lower().strip()
@@ -227,18 +200,15 @@ class KnowledgeGraphComparator:
         type_e = e_entity.get('type', '').upper()
         type_s = s_entity.get('type', '').upper()
         
-        # 1. Business-to-Technical Mapping (Primary Factor - 50%)
         business_mapping_score = self._get_business_to_technical_mapping(e_entity, s_entity)
         if business_mapping_score > 0:
             score += business_mapping_score * 0.5
         
-        # 2. Type Compatibility (30%)
         if self._are_compatible_types(type_e, type_s):
             score += 0.3
         elif self._are_related_entity_domains(type_e, type_s):
             score += 0.2
         
-        # 3. Text Similarity (15%)
         if text_e and text_s:
             text_similarity = difflib.SequenceMatcher(None, text_e, text_s).ratio()
             substring_match = max(
@@ -248,24 +218,20 @@ class KnowledgeGraphComparator:
             best_text_score = max(text_similarity, substring_match)
             score += best_text_score * 0.15
         
-        # 4. Semantic Context (20%)
         semantic_score = self._calculate_enhanced_semantic_similarity(e_entity, s_entity)
         score += semantic_score * 0.2
         
-        # 5. Entity Value Matching (5%) - for exact value matches
         value_score = self._calculate_value_similarity(e_entity, s_entity)
         score += value_score * 0.05
         
         return min(score, 1.0)
     
     def _get_business_to_technical_mapping(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Map business entities to smart contract technical elements"""
         e_text = e_entity.get('text', '').lower().strip()
         e_type = e_entity.get('type', '').upper()
         s_text = s_entity.get('text', '').lower().strip()
         s_type = s_entity.get('type', '').upper()
         
-        # Enhanced business entity patterns to smart contract mappings with expanded coverage
         business_mappings = {
             'party_mappings': {
                 'patterns': ['corporation', 'company', 'inc', 'llc', 'ltd', 'party a', 'party b', 'client', 'provider', 'contractor', 'landlord', 'tenant', 'employee', 'employer', 'person', 'organization', 'individual', 'entity', 'lessor', 'lessee', 'buyer', 'seller', 'customer', 'supplier'],
@@ -333,7 +299,6 @@ class KnowledgeGraphComparator:
         return max_mapping_score
     
     def _are_compatible_types(self, type1: str, type2: str) -> bool:
-        """Enhanced entity type compatibility"""
         compatibility_mappings = {
             'PERSON': ['PARTY', 'ORGANIZATION', 'CONTRACT_PARTY', 'VARIABLE', 'STATE_VARIABLE'],
             'ORG': ['ORGANIZATION', 'PARTY', 'CONTRACT_PARTY', 'VARIABLE', 'STATE_VARIABLE'],
@@ -355,21 +320,17 @@ class KnowledgeGraphComparator:
         return False
     
     def _calculate_value_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Calculate similarity based on exact value matches"""
         e_text = e_entity.get('text', '').lower().strip()
         s_text = s_entity.get('text', '').lower().strip()
         
-        # Extract numeric values
         e_numbers = re.findall(r'\d+(?:\.\d+)?', e_text)
         s_numbers = re.findall(r'\d+(?:\.\d+)?', s_text)
         
         if e_numbers and s_numbers:
-            # Check if any numbers match
             common_numbers = set(e_numbers) & set(s_numbers)
             if common_numbers:
                 return 1.0
         
-        # Extract common words (excluding stop words)
         stop_words = {'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by'}
         e_words = set(word for word in e_text.split() if word not in stop_words and len(word) > 2)
         s_words = set(word for word in s_text.split() if word not in stop_words and len(word) > 2)
@@ -382,21 +343,17 @@ class KnowledgeGraphComparator:
         return 0.0
     
     def _calculate_value_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Calculate similarity based on exact value matches"""
         e_text = e_entity.get('text', '').lower().strip()
         s_text = s_entity.get('text', '').lower().strip()
         
-        # Extract numeric values
         e_numbers = re.findall(r'\d+(?:\.\d+)?', e_text)
         s_numbers = re.findall(r'\d+(?:\.\d+)?', s_text)
         
         if e_numbers and s_numbers:
-            # Check if any numbers match
             common_numbers = set(e_numbers) & set(s_numbers)
             if common_numbers:
                 return 1.0
         
-        # Extract common words (excluding stop words)
         stop_words = {'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by'}
         e_words = set(word for word in e_text.split() if word not in stop_words and len(word) > 2)
         s_words = set(word for word in s_text.split() if word not in stop_words and len(word) > 2)
@@ -409,7 +366,6 @@ class KnowledgeGraphComparator:
         return 0.0
     
     def _are_related_entity_domains(self, type1: str, type2: str) -> bool:
-        """Check if entity types are from related domains"""
         domain_groups = [
             ['PERSON', 'ORG', 'ORGANIZATION', 'PARTY', 'CONTRACT_PARTY', 'VARIABLE', 'GENERAL'],
             ['MONEY', 'FINANCIAL', 'MONETARY_AMOUNT', 'CURRENCY', 'VARIABLE', 'STATE_VARIABLE'],
@@ -425,7 +381,6 @@ class KnowledgeGraphComparator:
         return False
     
     def _calculate_enhanced_semantic_similarity(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Enhanced semantic similarity calculation"""
         e_text = e_entity.get('text', '').lower()
         s_text = s_entity.get('text', '').lower()
         e_properties = str(e_entity.get('properties', {})).lower()
@@ -459,7 +414,6 @@ class KnowledgeGraphComparator:
         return intersection / union if union > 0 else 0.0
     
     def _match_relations(self, relations_e: Dict[str, Any], relations_s: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Enhanced relationship matching"""
         matches = []
         
         e_relations = [{'id': rid, **data} for rid, data in relations_e.items()]
@@ -486,25 +440,20 @@ class KnowledgeGraphComparator:
         return matches
     
     def _calculate_relation_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
-        """Enhanced relationship similarity calculation with comprehensive business logic"""
         score = 0.0
         
         relation_e = e_relation.get('relation', '').lower()
         relation_s = s_relation.get('relation', '').lower()
         
-        # 1. Direct Exact Type Match (HIGHEST PRIORITY - 40%)
         if relation_e == relation_s:
             score += 0.40  # Exact match gets highest weight
         elif self._are_compatible_relations(relation_e, relation_s):
             score += 0.25
         
-        # 2. Enhanced Business-to-Technical Relationship Mapping (35%)
         business_relation_mapping = self._get_enhanced_business_relation_mapping(e_relation, s_relation)
         if business_relation_mapping > 0:
             score += business_relation_mapping * 0.35
         
-        # 3. Source and Target Compatibility (15%)
-        # 4. Enhanced Contextual Similarity (10%)
         contextual_score = self._calculate_contextual_relationship_similarity(e_relation, s_relation)
         score += contextual_score * 0.10
         source_type_e = e_relation.get('source_type', '').upper()
@@ -522,23 +471,18 @@ class KnowledgeGraphComparator:
         elif self._are_compatible_types(target_type_e, target_type_s):
             score += 0.06
         
-        # 4. Semantic Context (10%)
         semantic_relation_score = self._calculate_semantic_relation_similarity(e_relation, s_relation)
         score += semantic_relation_score * 0.1
         
         return min(score, 1.0)
     
     def _get_business_to_technical_relation_mapping(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
-        """Enhanced mapping of business relationships to technical smart contract relationships"""
         e_rel = e_relation.get('relation', '').lower()
         s_rel = s_relation.get('relation', '').lower()
         
-        # CRITICAL: Direct exact matching for e-contract relationship types
-        # This handles exact type matches between e-contract and smart contract
         if e_rel == s_rel:
             return 0.95  # Very high score for exact match
         
-        # Enhanced business relation mappings with EXACT e-contract types
         enhanced_relation_mappings = {
             'obligation_mappings': {
                 'business_relations': ['obligation_assignment', 'obligation', 'must_do', 'shall_perform', 'required_to', 'responsible_for', 
@@ -592,22 +536,17 @@ class KnowledgeGraphComparator:
         
         max_mapping_score = 0.0
         
-        # Direct pattern matching with confidence scoring
         for mapping_type, mapping_data in enhanced_relation_mappings.items():
             e_matches_business = any(pattern in e_rel for pattern in mapping_data['business_relations'])
             s_matches_technical = any(pattern in s_rel for pattern in mapping_data['technical_relations'])
             
             if e_matches_business and s_matches_technical:
-                # High confidence mapping
                 max_mapping_score = max(max_mapping_score, 0.9)
             elif e_matches_business and s_rel in ['contains', 'has_member', 'has_parameter', 'stores']:
-                # Medium confidence mapping to common technical relations
                 max_mapping_score = max(max_mapping_score, 0.7)
             elif any(word in e_rel for word in ['co_occurrence', 'part_of', 'includes']) and s_rel in ['contains', 'has_member']:
-                # Generic structural mapping
                 max_mapping_score = max(max_mapping_score, 0.5)
         
-        # Semantic similarity fallback for broader matching
         if max_mapping_score == 0.0:
             semantic_score = self._calculate_semantic_relation_similarity(e_relation, s_relation)
             if semantic_score > 0.3:
@@ -616,45 +555,37 @@ class KnowledgeGraphComparator:
         return max_mapping_score
 
     def _get_enhanced_business_relation_mapping(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
-        """Enhanced business-to-technical relationship mapping with comprehensive patterns"""
         e_rel = e_relation.get('relation', '').lower()
         s_rel = s_relation.get('relation', '').lower()
         e_props = str(e_relation.get('properties', {})).lower()
         s_props = str(s_relation.get('properties', {})).lower()
         
-        # Comprehensive business relationship mappings
         enhanced_relation_mappings = {
-            # Obligation and enforcement mappings (Enhanced)
             'obligation_mappings': {
                 'business_patterns': ['obligation', 'must_do', 'shall_perform', 'required_to', 'duty', 'responsibility', 'liable', 'bound', 'committed', 'accountable'],
                 'technical_patterns': ['has_parameter', 'contains', 'calls', 'requires', 'modifies', 'validates', 'enforces', 'checks', 'asserts', 'ensures'],
                 'score': 0.95
             },
-            # Financial transaction mappings (Enhanced)
             'financial_mappings': {
                 'business_patterns': ['payment', 'pays', 'financial', 'monetary', 'cost', 'fee', 'salary', 'rent', 'deposit', 'charge', 'billing', 'invoice'],
                 'technical_patterns': ['has_member', 'contains', 'stores', 'transfers', 'updates', 'balances', 'payable', 'value', 'amount', 'wei'],
                 'score': 0.92
             },
-            # Temporal constraint mappings
             'temporal_mappings': {
                 'business_patterns': ['temporal', 'deadline', 'duration', 'schedule', 'expires', 'due_date'],
                 'technical_patterns': ['contains', 'inherits_from', 'depends_on', 'triggers', 'timestamps'],
                 'score': 0.80
             },
-            # Conditional logic mappings
             'conditional_mappings': {
                 'business_patterns': ['condition', 'if_then', 'requires', 'depends_on', 'contingent', 'provided'],
                 'technical_patterns': ['has_parameter', 'contains', 'controls', 'validates', 'checks'],
                 'score': 0.85
             },
-            # Access control mappings
             'access_mappings': {
                 'business_patterns': ['authorized', 'permitted', 'allowed', 'restricted', 'exclusive'],
                 'technical_patterns': ['modifies', 'requires', 'controls', 'validates', 'restricts'],
                 'score': 0.88
             },
-            # State management mappings
             'state_mappings': {
                 'business_patterns': ['status', 'state', 'active', 'inactive', 'completed', 'pending'],
                 'technical_patterns': ['stores', 'contains', 'updates', 'modifies', 'tracks'],
@@ -678,11 +609,9 @@ class KnowledgeGraphComparator:
         return max_score
     
     def _calculate_contextual_relationship_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
-        """Calculate contextual similarity between business and technical relationships"""
         e_context = f"{e_relation.get('relation', '')} {e_relation.get('text', '')} {e_relation.get('description', '')}".lower()
         s_context = f"{s_relation.get('relation', '')} {s_relation.get('text', '')} {s_relation.get('description', '')}".lower()
         
-        # Enhanced contextual mappings for better relationship understanding
         contextual_patterns = {
             'enforcement': {
                 'business': ['must', 'shall', 'required', 'obligation', 'duty', 'liable', 'responsible'],
@@ -715,7 +644,6 @@ class KnowledgeGraphComparator:
         return max_contextual_score
     
     def _calculate_semantic_relation_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
-        """Calculate semantic similarity for relationships"""
         e_context = (e_relation.get('relation', '') + ' ' + 
                     str(e_relation.get('properties', {}))).lower()
         s_context = (s_relation.get('relation', '') + ' ' + 
@@ -747,8 +675,6 @@ class KnowledgeGraphComparator:
         return intersection / union if union > 0 else 0.0
     
     def _are_compatible_relations(self, rel1: str, rel2: str) -> bool:
-        """Enhanced relation compatibility check with exact e-contract type support"""
-        # E-contract exact type mappings to technical implementations
         relation_mappings = {
             'obligation_assignment': ['obligation', 'responsibility', 'business_logic', 'contains', 'has_parameter', 'requires', 'controls'],
             'obligation': ['obligation_assignment', 'responsibility', 'contains', 'has_parameter', 'requires', 'controls'],
@@ -776,7 +702,6 @@ class KnowledgeGraphComparator:
         return False
     
     def _classify_match_type(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> str:
-        """Classify the type of match between entities"""
         e_text = e_entity.get('text', '').lower()
         s_text = s_entity.get('text', '').lower()
         
@@ -791,7 +716,6 @@ class KnowledgeGraphComparator:
     
     def _calculate_entity_preservation(self, entities_e: Dict[str, Any], entities_s: Dict[str, Any], 
                                      entity_matches: List[Dict[str, Any]]) -> float:
-        """Calculate entity preservation score (0-1)"""
         if not entities_e:
             return 1.0 if not entities_s else 0.0
         
@@ -799,14 +723,12 @@ class KnowledgeGraphComparator:
     
     def _calculate_relation_preservation(self, relations_e: Dict[str, Any], relations_s: Dict[str, Any],
                                        relation_matches: List[Dict[str, Any]]) -> float:
-        """Calculate relationship preservation score (0-1)"""
         if not relations_e:
             return 1.0 if not relations_s else 0.0
         
         return len(relation_matches) / len(relations_e)
 
     def _extract_business_context(self, entity: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract business context from entity"""
         text = entity.get('text', '').lower()
         entity_type = entity.get('type', '').lower()
         
@@ -821,7 +743,6 @@ class KnowledgeGraphComparator:
         return context
 
     def _extract_technical_context(self, entity: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract technical context from smart contract entity"""
         text = entity.get('text', '').lower()
         entity_type = entity.get('type', '').lower()
         
@@ -836,7 +757,6 @@ class KnowledgeGraphComparator:
         return context
 
     def _identify_business_domain(self, text: str) -> str:
-        """Identify the business domain of an entity"""
         domains = {
             'employment': ['employee', 'employer', 'job', 'work', 'salary', 'wage'],
             'rental': ['tenant', 'landlord', 'rent', 'lease', 'property'],
@@ -851,7 +771,6 @@ class KnowledgeGraphComparator:
         return 'general'
 
     def _identify_solidity_type(self, text: str) -> str:
-        """Identify Solidity data type from text"""
         if any(t in text for t in ['uint', 'int']):
             return 'numeric'
         elif 'address' in text:
@@ -866,10 +785,8 @@ class KnowledgeGraphComparator:
             return 'unknown'
 
     def _calculate_contextual_similarity(self, e_context: Dict[str, Any], s_context: Dict[str, Any]) -> float:
-        """Calculate contextual similarity between business and technical contexts"""
         score = 0.0
         
-        # Business-to-technical context mapping
         if e_context.get('is_financial') and s_context.get('data_type') == 'numeric':
             score += 0.8
         if e_context.get('is_party') and s_context.get('data_type') == 'address':
@@ -882,16 +799,12 @@ class KnowledgeGraphComparator:
         return min(score, 1.0)
 
     def _calculate_advanced_text_similarity(self, text1: str, text2: str) -> float:
-        """Advanced text similarity using multiple algorithms"""
-        # Jaccard similarity
         words1 = set(text1.split())
         words2 = set(text2.split())
         jaccard = len(words1 & words2) / len(words1 | words2) if words1 or words2 else 0
         
-        # Sequence similarity
         sequence = difflib.SequenceMatcher(None, text1, text2).ratio()
         
-        # Substring similarity
         substring = max(
             len(text1) / len(text2) if text1 in text2 else 0,
             len(text2) / len(text1) if text2 in text1 else 0
@@ -900,13 +813,10 @@ class KnowledgeGraphComparator:
         return max(jaccard, sequence, substring)
 
     def _get_enhanced_business_mapping(self, e_entity: Dict[str, Any], s_entity: Dict[str, Any]) -> float:
-        """Enhanced business-to-technical mapping with comprehensive pattern matching"""
         e_text = e_entity.get('text', '').lower()
         s_text = s_entity.get('text', '').lower()
         
-        # Comprehensive enhanced mapping patterns
         enhanced_mappings = {
-            # Party mappings with variations
             ('tenant', 'address'): 0.95, ('renter', 'address'): 0.95, ('lessee', 'address'): 0.95,
             ('landlord', 'address'): 0.95, ('lessor', 'address'): 0.95, ('owner', 'address'): 0.90,
             ('employee', 'address'): 0.95, ('worker', 'address'): 0.90, ('staff', 'address'): 0.85,
@@ -914,7 +824,6 @@ class KnowledgeGraphComparator:
             ('contractor', 'address'): 0.90, ('freelancer', 'address'): 0.85, ('consultant', 'address'): 0.85,
             ('client', 'address'): 0.90, ('customer', 'address'): 0.85, ('buyer', 'address'): 0.85,
             
-            # Financial mappings with context
             ('rent', 'amount'): 0.95, ('rental', 'amount'): 0.90, ('lease', 'amount'): 0.85,
             ('salary', 'amount'): 0.95, ('wage', 'amount'): 0.90, ('compensation', 'amount'): 0.90,
             ('payment', 'amount'): 0.90, ('pay', 'amount'): 0.85, ('remuneration', 'amount'): 0.85,
@@ -922,60 +831,49 @@ class KnowledgeGraphComparator:
             ('deposit', 'amount'): 0.90, ('security', 'amount'): 0.85, ('bond', 'amount'): 0.80,
             ('fine', 'amount'): 0.85, ('penalty', 'amount'): 0.85, ('late', 'amount'): 0.80,
             
-            # Contract state and function mappings
             ('contract', 'active'): 0.85, ('agreement', 'active'): 0.85, ('deal', 'active'): 0.80,
             ('terminated', 'terminate'): 0.95, ('ended', 'terminate'): 0.90, ('cancelled', 'terminate'): 0.85,
             ('signed', 'active'): 0.80, ('executed', 'active'): 0.75, ('valid', 'active'): 0.70,
             ('breach', 'terminate'): 0.85, ('violation', 'terminate'): 0.80, ('default', 'terminate'): 0.80,
             
-            # Temporal mappings with enhanced context
             ('deadline', 'timestamp'): 0.90, ('due', 'timestamp'): 0.85, ('expiry', 'timestamp'): 0.85,
             ('date', 'timestamp'): 0.85, ('time', 'timestamp'): 0.80, ('period', 'timestamp'): 0.75,
             ('start', 'timestamp'): 0.85, ('begin', 'timestamp'): 0.80, ('commence', 'timestamp'): 0.80,
             ('end', 'timestamp'): 0.85, ('finish', 'timestamp'): 0.80, ('complete', 'timestamp'): 0.75,
             
-            # Obligation and condition mappings
             ('obligation', 'function'): 0.90, ('duty', 'function'): 0.85, ('responsibility', 'function'): 0.85,
             ('condition', 'modifier'): 0.85, ('requirement', 'modifier'): 0.80, ('clause', 'modifier'): 0.75,
             ('rule', 'modifier'): 0.80, ('policy', 'modifier'): 0.75, ('standard', 'modifier'): 0.70,
         }
         
-        # Check for direct matches with enhanced scoring
         best_score = 0.0
         for (business_term, tech_term), score in enhanced_mappings.items():
             if business_term in e_text and tech_term in s_text:
                 best_score = max(best_score, score)
         
-        # Additional pattern matching for complex business rules
         if best_score == 0.0:
             best_score = self._match_business_rule_patterns(e_text, s_text)
         
-        # Fallback to original mapping if still no match
         if best_score == 0.0:
             best_score = self._get_business_to_technical_mapping(e_entity, s_entity)
             
         return best_score
 
     def _match_business_rule_patterns(self, e_text: str, s_text: str) -> float:
-        """Match complex business rule patterns to technical implementations"""
         score = 0.0
         
-        # Payment validation patterns
         if any(term in e_text for term in ['pay', 'payment', 'money']) and \
            any(term in s_text for term in ['require', 'validate', 'check', 'verify']):
             score = max(score, 0.75)
             
-        # Access control patterns  
         if any(term in e_text for term in ['only', 'authorized', 'permitted']) and \
            any(term in s_text for term in ['modifier', 'require', 'msg.sender']):
             score = max(score, 0.80)
             
-        # Time-based validation patterns
         if any(term in e_text for term in ['deadline', 'expire', 'time']) and \
            any(term in s_text for term in ['timestamp', 'block.timestamp', 'now']):
             score = max(score, 0.70)
             
-        # State management patterns
         if any(term in e_text for term in ['status', 'state', 'condition']) and \
            any(term in s_text for term in ['bool', 'enum', 'mapping']):
             score = max(score, 0.65)
@@ -983,21 +881,15 @@ class KnowledgeGraphComparator:
         return score
 
     def _calculate_accuracy_score(self, e_kg, s_kg, matches: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate comprehensive accuracy score for smart contract generation"""
         
-        # Entity coverage analysis
         entity_coverage = len(matches['entity_matches']) / len(e_kg.entities) if e_kg.entities else 0
         
-        # Relationship preservation analysis
         relation_coverage = len(matches['relationship_matches']) / len(e_kg.relationships) if e_kg.relationships else 0
         
-        # Business logic preservation
         business_logic_score = self._analyze_business_logic_preservation(e_kg, s_kg)
         
-        # Contract completeness
         completeness_score = self._analyze_contract_completeness(s_kg)
         
-        # Calculate weighted accuracy
         accuracy_weights = {
             'entity_coverage': 0.3,
             'relation_coverage': 0.25,
@@ -1022,18 +914,14 @@ class KnowledgeGraphComparator:
         }
 
     def _analyze_business_logic_preservation(self, e_kg, s_kg) -> float:
-        """Comprehensive analysis of business logic preservation in smart contract"""
         score = 0.0
         
-        # Enhanced business concept detection with scoring weights
         business_concepts = {
-            # Core business entities (high importance)
             'parties': ['party', 'tenant', 'landlord', 'employee', 'employer', 'client', 'provider'],
             'financial': ['payment', 'salary', 'rent', 'fee', 'cost', 'amount', 'money'],
             'obligations': ['obligation', 'duty', 'responsibility', 'must', 'shall', 'required'],
             'conditions': ['condition', 'if', 'when', 'provided', 'subject', 'contingent'],
             'temporal': ['date', 'time', 'deadline', 'duration', 'period', 'schedule'],
-            # Contract management (medium importance)
             'termination': ['terminate', 'end', 'cancel', 'expire', 'breach'],
             'validation': ['validate', 'verify', 'check', 'confirm', 'approve'],
             'access_control': ['authorized', 'permitted', 'restricted', 'allowed'],
@@ -1042,7 +930,6 @@ class KnowledgeGraphComparator:
         e_entities_text = ' '.join([e.get('text', '') for e in e_kg.entities.values()]).lower()
         s_entities_text = ' '.join([e.get('text', '') for e in s_kg.entities.values()]).lower()
         
-        # Add relationships text for broader context
         e_relations_text = ' '.join([r.get('relation', '') for r in e_kg.relationships.values()]).lower()
         s_relations_text = ' '.join([r.get('relation', '') for r in s_kg.relationships.values()]).lower()
         
@@ -1064,11 +951,9 @@ class KnowledgeGraphComparator:
             elif e_has_concept:  # Concept in e-contract but missing in smart contract
                 preserved_score += concept_weights[concept_group] * 0.3  # Partial credit for awareness
         
-        # Business rule structure preservation (relationships to functions)
         relationship_score = 0.0
         if len(e_kg.relationships) > 0:
             relationship_ratio = min(len(s_kg.relationships) / len(e_kg.relationships), 1.0)
-            # Enhanced scoring for relationship complexity
             if relationship_ratio > 0.7:
                 relationship_score = 0.30  # Excellent preservation
             elif relationship_ratio > 0.5:
@@ -1078,7 +963,6 @@ class KnowledgeGraphComparator:
             else:
                 relationship_score = relationship_ratio * 0.15  # Poor preservation
         
-        # Smart contract completeness bonus
         completeness_bonus = 0.0
         if 'function' in s_full_text and 'constructor' in s_full_text:
             completeness_bonus += 0.05
@@ -1089,16 +973,13 @@ class KnowledgeGraphComparator:
         return min(total_score, 1.0)
 
     def _analyze_contract_completeness(self, s_kg) -> float:
-        """Comprehensive analysis of generated smart contract completeness"""
         score = 0.0
         
         entities_text = ' '.join([e.get('text', '') for e in s_kg.entities.values()]).lower()
         relations_text = ' '.join([r.get('relation', '') for r in s_kg.relationships.values()]).lower()
         full_text = f"{entities_text} {relations_text}"
         
-        # Enhanced essential smart contract elements with detailed scoring
         essential_elements = {
-            # Core structural elements
             'constructor_elements': {
                 'patterns': ['constructor', 'initialize', 'init'],
                 'weight': 0.15,
@@ -1114,7 +995,6 @@ class KnowledgeGraphComparator:
                 'weight': 0.25,
                 'bonus_patterns': ['payable', 'view', 'pure', 'returns']  # Function modifiers
             },
-            # Business logic elements
             'events': {
                 'patterns': ['event', 'emit', 'log'],
                 'weight': 0.10,
@@ -1125,7 +1005,6 @@ class KnowledgeGraphComparator:
                 'weight': 0.10,
                 'bonus_patterns': ['msg.sender', 'authorized', 'active']  # Access control
             },
-            # Advanced elements
             'error_handling': {
                 'patterns': ['require', 'revert', 'assert'],
                 'weight': 0.08,
@@ -1147,13 +1026,11 @@ class KnowledgeGraphComparator:
             element_found = any(pattern in full_text for pattern in element_data['patterns'])
             if element_found:
                 base_score = element_data['weight']
-                # Bonus for advanced implementation
                 bonus_found = any(bonus in full_text for bonus in element_data.get('bonus_patterns', []))
                 if bonus_found:
                     base_score *= 1.2  # 20% bonus for advanced implementation
                 score += base_score
         
-        # Additional completeness checks
         completeness_bonuses = {
             'comprehensive_access_control': {
                 'check': lambda text: all(term in text for term in ['modifier', 'require', 'msg.sender']),
@@ -1180,11 +1057,9 @@ class KnowledgeGraphComparator:
         return min(score, 1.0)
 
     def _determine_compliance_level(self, similarity: float, accuracy_data: Dict[str, Any]) -> str:
-        """Determine compliance level based on multiple factors"""
         business_logic_score = accuracy_data.get('business_logic_score', 0)
         completeness_score = accuracy_data.get('completeness_score', 0)
         
-        # Weighted compliance scoring
         weighted_score = (similarity * 0.4 + business_logic_score * 0.35 + completeness_score * 0.25)
         
         if weighted_score >= 0.80:
@@ -1199,8 +1074,6 @@ class KnowledgeGraphComparator:
             return 'Low'
     
     def _assess_deployment_readiness(self, similarity: float, accuracy_data: Dict[str, Any]) -> bool:
-        """Comprehensive deployment readiness assessment"""
-        # Multiple criteria for deployment readiness
         criteria = {
             'similarity_threshold': similarity >= 0.60,
             'business_logic_preserved': accuracy_data.get('business_logic_score', 0) >= 0.50,
@@ -1208,12 +1081,10 @@ class KnowledgeGraphComparator:
             'entity_coverage': accuracy_data.get('entity_coverage', 0) >= 0.70
         }
         
-        # Require at least 3 out of 4 criteria to be met
         met_criteria = sum(criteria.values())
         return met_criteria >= 3
     
     def _identify_compliance_issues(self, similarity: float, accuracy_data: Dict[str, Any]) -> List[str]:
-        """Identify specific compliance issues for targeted improvement"""
         issues = []
         
         if similarity < 0.60:
@@ -1241,5 +1112,4 @@ class KnowledgeGraphComparator:
         return issues
 
 
-# Legacy alias for backwards compatibility
 ContractComparator = KnowledgeGraphComparator

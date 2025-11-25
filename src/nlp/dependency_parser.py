@@ -1,6 +1,3 @@
-"""
-Dependency parsing module for extracting relationships from e-contract text
-"""
 
 import re
 from typing import List, Dict, Any, Tuple, Set
@@ -20,7 +17,6 @@ except ImportError:
     from utils.config import Config
 
 class DependencyParser:
-    """Extracts relationships and dependencies from contract text"""
     
     def __init__(self):
         self.nlp = None
@@ -28,7 +24,6 @@ class DependencyParser:
         self.relationship_patterns = self._define_relationship_patterns()
     
     def _load_models(self):
-        """Load spacy model for dependency parsing"""
         if SPACY_AVAILABLE:
             try:
                 self.nlp = spacy.load(Config.NLP_MODEL)
@@ -37,7 +32,6 @@ class DependencyParser:
                 self.nlp = None
     
     def _define_relationship_patterns(self) -> Dict[str, List[str]]:
-        """Define relationship patterns for contract analysis"""
         return {
             'obligation': [
                 'shall', 'must', 'will', 'agrees to', 'undertakes to',
@@ -74,7 +68,6 @@ class DependencyParser:
         }
     
     def extract_dependencies_spacy(self, text: str) -> List[Dict[str, Any]]:
-        """Extract dependencies using Spacy's dependency parser"""
         if not self.nlp:
             return []
         
@@ -98,21 +91,18 @@ class DependencyParser:
         return dependencies
     
     def extract_entity_relationships(self, text: str, entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extract relationships between identified entities"""
         if not self.nlp:
             return []
         
         doc = self.nlp(text)
         relationships = []
         
-        # Create entity spans mapping
         entity_spans = {}
         for entity in entities:
             start, end = entity.get('start', -1), entity.get('end', -1)
             if start >= 0 and end >= 0:
                 entity_spans[(start, end)] = entity
         
-        # Find relationships between entities
         for sent in doc.sents:
             sent_entities = []
             for start, end in entity_spans.keys():
@@ -120,7 +110,6 @@ class DependencyParser:
                     sent_entities.append(entity_spans[(start, end)])
             
             if len(sent_entities) >= 2:
-                # Look for relationships between entity pairs
                 for entity1, entity2 in combinations(sent_entities, 2):
                     relationship = self._find_relationship_in_sentence(
                         sent.text, entity1, entity2
@@ -132,24 +121,20 @@ class DependencyParser:
     
     def _find_relationship_in_sentence(self, sentence: str, entity1: Dict[str, Any], 
                                      entity2: Dict[str, Any]) -> Dict[str, Any]:
-        """Find relationship between two entities in a sentence"""
         sentence_lower = sentence.lower()
         entity1_text = entity1['text'].lower()
         entity2_text = entity2['text'].lower()
         
-        # Find positions of entities in the sentence
         entity1_pos = sentence_lower.find(entity1_text)
         entity2_pos = sentence_lower.find(entity2_text)
         
         if entity1_pos == -1 or entity2_pos == -1:
             return None
         
-        # Determine the text between entities
         start_pos = min(entity1_pos, entity2_pos)
         end_pos = max(entity1_pos + len(entity1_text), entity2_pos + len(entity2_text))
         between_text = sentence_lower[start_pos:end_pos]
         
-        # Check for relationship patterns
         for relation_type, patterns in self.relationship_patterns.items():
             for pattern in patterns:
                 if pattern in between_text:
@@ -164,7 +149,6 @@ class DependencyParser:
                         'target_type': entity2.get('label', 'UNKNOWN')
                     }
         
-        # Default relationship if entities are in the same sentence
         return {
             'source': entity1['text'],
             'target': entity2['text'],
@@ -177,14 +161,12 @@ class DependencyParser:
         }
     
     def extract_grammatical_relationships(self, text: str) -> List[Dict[str, Any]]:
-        """Extract grammatical relationships using dependency parsing"""
         if not self.nlp:
             return []
         
         doc = self.nlp(text)
         relationships = []
         
-        # Important grammatical relations for contract analysis
         important_relations = [
             'nsubj',    # nominal subject
             'dobj',     # direct object
@@ -213,11 +195,9 @@ class DependencyParser:
         return relationships
     
     def extract_semantic_relationships(self, text: str) -> List[Dict[str, Any]]:
-        """Extract semantic relationships using pattern matching"""
         relationships = []
         sentences = text.split('.')
         
-        # Semantic patterns for contract relationships
         patterns = {
             'causation': [
                 r'(\w+(?:\s+\w+)*)\s+(?:causes?|results?\s+in|leads?\s+to)\s+(\w+(?:\s+\w+)*)',
@@ -259,21 +239,17 @@ class DependencyParser:
         return relationships
     
     def extract_all_relationships(self, text: str, entities: List[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """Extract all types of relationships from text"""
         all_relationships = []
         
-        # Extract different types of relationships
         if self.nlp:
             all_relationships.extend(self.extract_dependencies_spacy(text))
             all_relationships.extend(self.extract_grammatical_relationships(text))
         
         all_relationships.extend(self.extract_semantic_relationships(text))
         
-        # Extract entity relationships if entities are provided
         if entities:
             all_relationships.extend(self.extract_entity_relationships(text, entities))
         
-        # Remove duplicates and add IDs
         unique_relationships = self._deduplicate_relationships(all_relationships)
         
         for i, rel in enumerate(unique_relationships):
@@ -282,12 +258,10 @@ class DependencyParser:
         return unique_relationships
     
     def _deduplicate_relationships(self, relationships: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Remove duplicate relationships"""
         seen = set()
         unique_rels = []
         
         for rel in relationships:
-            # Create a key for deduplication
             key = (
                 rel.get('source', rel.get('head', '')).lower(),
                 rel.get('target', rel.get('dependent', '')).lower(),
@@ -301,7 +275,6 @@ class DependencyParser:
         return unique_rels
     
     def categorize_relationships(self, relationships: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """Categorize relationships by type"""
         categorized = defaultdict(list)
         
         for rel in relationships:
@@ -311,7 +284,6 @@ class DependencyParser:
         return dict(categorized)
     
     def get_relationship_statistics(self, relationships: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Get statistics about extracted relationships"""
         if not relationships:
             return {}
         

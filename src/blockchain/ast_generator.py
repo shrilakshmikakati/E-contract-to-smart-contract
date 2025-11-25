@@ -1,6 +1,3 @@
-"""
-Abstract Syntax Tree (AST) generator for Solidity smart contracts
-"""
 
 import os
 import json
@@ -24,7 +21,6 @@ except ImportError:
     from utils.file_handler import FileHandler
 
 class ASTGenerator:
-    """Generates Abstract Syntax Tree from Solidity smart contracts"""
     
     _installation_attempted = False
     _compiler_available = False
@@ -38,7 +34,6 @@ class ASTGenerator:
             self.solc_version = None if not ASTGenerator._compiler_available else 'fallback'
     
     def _ensure_solc_installation(self):
-        """Ensure Solidity compiler is installed (only attempt once per class)"""
         ASTGenerator._installation_attempted = True
         
         if not SOLCX_AVAILABLE:
@@ -47,7 +42,6 @@ class ASTGenerator:
             return
         
         try:
-            # First check if any version is already installed
             installed_versions = get_installed_solc_versions()
             if installed_versions:
                 self.solc_version = str(max(installed_versions))
@@ -55,11 +49,9 @@ class ASTGenerator:
                 print(f"Using existing Solidity compiler version: {self.solc_version}")
                 return
             
-            # Fix SSL certificate verification issues
             import ssl
             import urllib3
             
-            # Disable SSL warnings and create unverified context
             try:
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             except:
@@ -67,10 +59,8 @@ class ASTGenerator:
             
             ssl._create_default_https_context = ssl._create_unverified_context
             
-            # Only attempt installation once with a timeout
             print("🔄 Installing Solidity compiler (one-time setup)...")
             try:
-                # Try just one version with a reasonable timeout
                 install_solc('0.8.19', timeout=30)
                 set_solc_version('0.8.19')
                 self.solc_version = '0.8.19'
@@ -81,7 +71,6 @@ class ASTGenerator:
                 print("⚠️  Compiler installation failed: Network/SSL certificate issues detected")
                 print("✅ Continuing with fallback AST generation (offline mode)")
             
-            # If installation fails
             self.solc_version = None
             ASTGenerator._compiler_available = False
             
@@ -92,22 +81,12 @@ class ASTGenerator:
             ASTGenerator._compiler_available = False
     
     def extract_solidity_version(self, source_code: str) -> Optional[str]:
-        """
-        Extract Solidity version from pragma statement
-        
-        Args:
-            source_code: Solidity source code
-            
-        Returns:
-            Version string or None if not found
-        """
         pragma_pattern = r'pragma\s+solidity\s+([^;]+);'
         match = re.search(pragma_pattern, source_code, re.IGNORECASE)
         
         if match:
             version_spec = match.group(1).strip()
             
-            # Extract actual version number from specification
             version_patterns = [
                 r'(\d+\.\d+\.\d+)',  # Exact version like 0.8.19
                 r'\^(\d+\.\d+\.\d+)',  # Compatible version like ^0.8.0
@@ -119,7 +98,6 @@ class ASTGenerator:
                 if version_match:
                     return version_match.group(1)
             
-            # If no specific version found, try to extract any version-like string
             version_match = re.search(r'(\d+\.\d+)', version_spec)
             if version_match:
                 return version_match.group(1) + '.0'
@@ -127,28 +105,17 @@ class ASTGenerator:
         return None
     
     def select_compiler_version(self, version: str) -> bool:
-        """
-        Select appropriate Solidity compiler version
-        
-        Args:
-            version: Required Solidity version
-            
-        Returns:
-            True if successful, False otherwise
-        """
         if not SOLCX_AVAILABLE:
             return False
         
         try:
             installed_versions = get_installed_solc_versions()
             
-            # Check if the exact version is installed
             if version in [str(v) for v in installed_versions]:
                 set_solc_version(version)
                 self.solc_version = version
                 return True
             
-            # Try to install the required version
             print(f"Installing Solidity compiler version {version}...")
             install_solc(version)
             set_solc_version(version)
@@ -157,7 +124,6 @@ class ASTGenerator:
             
         except Exception as e:
             print(f"Error selecting compiler version {version}: {e}")
-            # Fallback to any available version
             if installed_versions:
                 fallback_version = str(max(installed_versions))
                 set_solc_version(fallback_version)
@@ -167,16 +133,6 @@ class ASTGenerator:
             return False
     
     def generate_ast(self, source_code: str) -> Dict[str, Any]:
-        """
-        Generate AST from Solidity source code - wrapper for compile_and_generate_ast
-        
-        Args:
-            source_code: Solidity source code
-            
-        Returns:
-            AST dictionary
-        """
-        # Check if compiler is available
         if self.solc_version is None or not SOLCX_AVAILABLE:
             return self._generate_fallback_ast(source_code)
             
@@ -186,23 +142,16 @@ class ASTGenerator:
         return result
         
     def _generate_fallback_ast(self, source_code: str) -> Dict[str, Any]:
-        """
-        Generate fallback AST when compiler is not available
-        """
         try:
             import re
             
-            # Extract contract name
             contract_match = re.search(r'contract\s+(\w+)', source_code)
             contract_name = contract_match.group(1) if contract_match else 'UnknownContract'
             
-            # Extract functions
             function_matches = re.findall(r'function\s+(\w+)\s*\([^)]*\)', source_code)
             
-            # Extract events
             event_matches = re.findall(r'event\s+(\w+)\s*\([^)]*\)', source_code)
             
-            # Basic AST structure
             return {
                 'contract_name': contract_name,
                 'ast': {
@@ -225,30 +174,17 @@ class ASTGenerator:
             }
 
     def compile_and_generate_ast(self, source_code: str, contract_name: str = None) -> Optional[Dict[str, Any]]:
-        """
-        Compile Solidity source code and generate AST
-        
-        Args:
-            source_code: Solidity source code
-            contract_name: Optional contract name
-            
-        Returns:
-            Compilation output with AST or None if failed
-        """
         if not SOLCX_AVAILABLE:
             print("Solidity compiler not available")
             return None
         
         try:
-            # Extract and set compiler version
             version = self.extract_solidity_version(source_code)
             if version:
                 if not self.select_compiler_version(version):
                     print(f"Failed to set compiler version {version}")
             
-            # Compile the source code with compatible flags
             try:
-                # Try with modern flags first
                 compiled_sol = compile_source(
                     source_code,
                     output_values=['ast', 'abi', 'bin']
@@ -256,7 +192,6 @@ class ASTGenerator:
             except Exception as compile_error:
                 print(f"Modern compilation failed: {compile_error}")
                 try:
-                    # Fallback to basic compilation
                     compiled_sol = compile_source(
                         source_code,
                         output_values=['ast', 'abi']
@@ -267,13 +202,11 @@ class ASTGenerator:
             
             self.compiler_output = compiled_sol
             
-            # Extract AST from compilation output
             ast_data = {}
             for contract_id, contract_data in compiled_sol.items():
                 if 'ast' in contract_data:
                     ast_data[contract_id] = contract_data['ast']
                 
-                # Also include other useful information
                 ast_data[f"{contract_id}_info"] = {
                     'abi': contract_data.get('abi', []),
                     'bytecode': contract_data.get('bin', contract_data.get('bytecode', '')),
@@ -289,16 +222,6 @@ class ASTGenerator:
             return None
     
     def save_ast_as_json(self, ast_data: Dict[str, Any], output_path: str) -> bool:
-        """
-        Save AST data as JSON file
-        
-        Args:
-            ast_data: AST data to save
-            output_path: Output file path
-            
-        Returns:
-            True if successful, False otherwise
-        """
         try:
             return FileHandler.write_json_file(output_path, ast_data)
         except Exception as e:
@@ -306,15 +229,6 @@ class ASTGenerator:
             return False
     
     def extract_contract_structure(self, ast_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Extract high-level contract structure from AST
-        
-        Args:
-            ast_data: AST data
-            
-        Returns:
-            Structured contract information
-        """
         structure = {
             'contracts': [],
             'functions': [],
@@ -326,7 +240,6 @@ class ASTGenerator:
         }
         
         def traverse_node(node, parent_contract=None):
-            """Recursively traverse AST nodes"""
             if not isinstance(node, dict):
                 return
             
@@ -354,7 +267,6 @@ class ASTGenerator:
                     'id': node.get('id', '')
                 }
                 
-                # Extract parameters
                 parameters = node.get('parameters', {}).get('parameters', [])
                 function_info['parameters'] = [
                     {
@@ -363,7 +275,6 @@ class ASTGenerator:
                     } for p in parameters
                 ]
                 
-                # Extract return parameters
                 return_params = node.get('returnParameters', {}).get('parameters', [])
                 function_info['returnParameters'] = [
                     {
@@ -394,7 +305,6 @@ class ASTGenerator:
                     'id': node.get('id', '')
                 }
                 
-                # Extract parameters
                 parameters = node.get('parameters', {}).get('parameters', [])
                 event_info['parameters'] = [
                     {
@@ -424,7 +334,6 @@ class ASTGenerator:
                     'members': []
                 }
                 
-                # Extract struct members
                 members = node.get('members', [])
                 for member in members:
                     struct_info['members'].append({
@@ -443,12 +352,10 @@ class ASTGenerator:
                 }
                 structure['enums'].append(enum_info)
             
-            # Recursively process child nodes
             if 'nodes' in node:
                 for child_node in node['nodes']:
                     traverse_node(child_node, parent_contract)
             
-            # Process other node collections
             for key in ['body', 'statements', 'trueBody', 'falseBody']:
                 if key in node:
                     if isinstance(node[key], list):
@@ -457,7 +364,6 @@ class ASTGenerator:
                     else:
                         traverse_node(node[key], parent_contract)
         
-        # Start traversal from root nodes
         for contract_id, ast in ast_data.items():
             if isinstance(ast, dict) and 'nodes' in ast:
                 for node in ast['nodes']:
@@ -466,7 +372,6 @@ class ASTGenerator:
         return structure
     
     def _extract_type_name(self, type_node: Dict[str, Any]) -> str:
-        """Extract type name from type node"""
         if not isinstance(type_node, dict):
             return 'unknown'
         
@@ -487,15 +392,6 @@ class ASTGenerator:
             return type_node.get('name', 'unknown')
     
     def generate_ast_from_file(self, file_path: str) -> Optional[Dict[str, Any]]:
-        """
-        Generate AST from Solidity file
-        
-        Args:
-            file_path: Path to Solidity file
-            
-        Returns:
-            AST data or None if failed
-        """
         try:
             solidity_data = FileHandler.read_solidity_file(file_path)
             if not solidity_data:

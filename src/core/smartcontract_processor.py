@@ -1,6 +1,3 @@
-"""
-Smart Contract processor implementing Algorithm 2: Smart Contract Knowledge Graph Construction
-"""
 
 from typing import Dict, Any, List, Optional
 import os
@@ -24,10 +21,6 @@ except ImportError:
     from core.enhanced_smart_contract_generator import EnhancedSmartContractGenerator
 
 class SmartContractProcessor:
-    """
-    Processes smart contracts to generate knowledge graphs
-    Implements Algorithm 2 from the research paper
-    """
     
     def __init__(self):
         self.ast_generator = ASTGenerator()
@@ -37,62 +30,43 @@ class SmartContractProcessor:
         self.processed_contracts = {}
     
     def process_contract(self, contract_code: str, contract_id: str = None) -> KnowledgeGraph:
-        """
-        Algorithm 2: Smart Contract Knowledge Graph Construction
-        
-        Args:
-            contract_code: Solidity source code
-            contract_id: Optional identifier for the contract
-            
-        Returns:
-            Knowledge graph G_s = (V_s, E_s)
-        """
         if contract_id is None:
             contract_id = f"smart_contract_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         print(f"Processing smart contract: {contract_id}")
         
-        # Step 1: Extract Solidity version (v ← ExtractSolidityVersion(S))
         print("Step 1: Extracting Solidity version...")
         solidity_version = self.ast_generator.extract_solidity_version(contract_code)
         
-        # Step 2: Select compiler (Compiler ← SelectCompiler(v))
         print("Step 2: Selecting compiler...")
         if solidity_version:
             compiler_selected = self.ast_generator.select_compiler_version(solidity_version)
             if not compiler_selected:
                 print(f"Warning: Could not select compiler for version {solidity_version}")
         
-        # Step 3: Compile and generate AST (AST ← CompileAndGenerateAST(S, Compiler))
         print("Step 3: Compiling and generating AST...")
         ast_data = self.ast_generator.compile_and_generate_ast(contract_code, contract_id)
         
         if not ast_data:
             raise ValueError("Failed to generate AST from smart contract code")
         
-        # Step 4: Save AST as JSON (ASTjson ← SaveAsJSON(AST))
         print("Step 4: Processing AST structure...")
         contract_structure = self.ast_generator.extract_contract_structure(ast_data)
         
-        # Steps 5-9: Apply grammar to each node and generate semantic structure
         print("Step 5-9: Applying grammar rules and generating semantic descriptions...")
         semantic_descriptions = self.grammar_engine.generate_semantic_description(contract_structure)
         
-        # Step 10: Extract entities from semantic structure (V_s ← ExtractEntitiesFromSemanticStructure())
         print("Step 10: Extracting entities from semantic structure...")
         entities = self._extract_entities_from_structure(contract_structure, semantic_descriptions)
         
-        # Step 11: Extract relations from semantic structure (E_s ← ExtractRelationsFromSemanticStructure())
         print("Step 11: Extracting relationships from semantic structure...")
         relationships = self._extract_relationships_from_structure(contract_structure, entities)
         
-        # Step 12: Construct knowledge graph (G_s ← (V_s, E_s))
         print("Step 12: Constructing knowledge graph...")
         knowledge_graph = self._construct_knowledge_graph(
             entities, relationships, contract_structure, semantic_descriptions, contract_id
         )
         
-        # Store processed contract data
         self.processed_contracts[contract_id] = {
             'source_code': contract_code,
             'solidity_version': solidity_version,
@@ -112,11 +86,9 @@ class SmartContractProcessor:
     
     def _extract_entities_from_structure(self, contract_structure: Dict[str, Any], 
                                        semantic_descriptions: Dict[str, List[str]]) -> List[Dict[str, Any]]:
-        """Extract entities from contract structure and semantic descriptions"""
         entities = []
         entity_id = 0
         
-        # Extract contracts as entities
         for contract in contract_structure.get('contracts', []):
             entities.append({
                 'id': f"contract_entity_{entity_id}",
@@ -134,7 +106,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract functions as entities
         for function in contract_structure.get('functions', []):
             entities.append({
                 'id': f"function_entity_{entity_id}",
@@ -156,7 +127,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract state variables as entities
         for variable in contract_structure.get('variables', []):
             entities.append({
                 'id': f"variable_entity_{entity_id}",
@@ -176,7 +146,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract events as entities
         for event in contract_structure.get('events', []):
             entities.append({
                 'id': f"event_entity_{entity_id}",
@@ -194,7 +163,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract modifiers as entities
         for modifier in contract_structure.get('modifiers', []):
             entities.append({
                 'id': f"modifier_entity_{entity_id}",
@@ -212,7 +180,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract structs as entities
         for struct in contract_structure.get('structs', []):
             entities.append({
                 'id': f"struct_entity_{entity_id}",
@@ -229,7 +196,6 @@ class SmartContractProcessor:
             })
             entity_id += 1
         
-        # Extract enums as entities
         for enum in contract_structure.get('enums', []):
             entities.append({
                 'id': f"enum_entity_{entity_id}",
@@ -250,25 +216,20 @@ class SmartContractProcessor:
     
     def _extract_relationships_from_structure(self, contract_structure: Dict[str, Any], 
                                             entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extract relationships from contract structure"""
         relationships = []
         rel_id = 0
         
-        # Create entity lookup by name and contract
         entity_lookup = {}
         for entity in entities:
             key = f"{entity['properties'].get('contract', '')}.{entity['text']}"
             entity_lookup[key] = entity
-            # Also add just the name for global lookup
             entity_lookup[entity['text']] = entity
         
-        # Extract contract inheritance relationships
         for contract in contract_structure.get('contracts', []):
             contract_name = contract['name']
             base_contracts = contract.get('linearizedBaseContracts', [])
             
             for base_contract_id in base_contracts:
-                # Find base contract entity
                 for entity in entities:
                     if (entity['type'] == 'CONTRACT' and 
                         entity['properties'].get('ast_id') == str(base_contract_id) and
@@ -286,7 +247,6 @@ class SmartContractProcessor:
                         })
                         rel_id += 1
         
-        # Extract containment relationships (contract contains functions, variables, etc.)
         for contract in contract_structure.get('contracts', []):
             contract_name = contract['name']
             contract_entity = entity_lookup.get(contract_name)
@@ -294,7 +254,6 @@ class SmartContractProcessor:
             if not contract_entity:
                 continue
             
-            # Functions contained in contract
             for function in contract_structure.get('functions', []):
                 if function.get('contract') == contract_name:
                     function_entity = entity_lookup.get(f"{contract_name}.{function['name']}")
@@ -311,7 +270,6 @@ class SmartContractProcessor:
                         })
                         rel_id += 1
             
-            # Variables contained in contract
             for variable in contract_structure.get('variables', []):
                 if variable.get('contract') == contract_name:
                     variable_entity = entity_lookup.get(f"{contract_name}.{variable['name']}")
@@ -328,7 +286,6 @@ class SmartContractProcessor:
                         })
                         rel_id += 1
             
-            # Events, modifiers, structs, enums
             for item_type, items in [
                 ('events', 'EVENT'),
                 ('modifiers', 'MODIFIER'),
@@ -351,7 +308,6 @@ class SmartContractProcessor:
                             })
                             rel_id += 1
         
-        # Extract function parameter relationships
         for function in contract_structure.get('functions', []):
             function_name = function['name']
             contract_name = function.get('contract', '')
@@ -360,7 +316,6 @@ class SmartContractProcessor:
             if not function_entity:
                 continue
             
-            # Parameters
             parameters = function.get('parameters', [])
             for param in parameters:
                 param_name = param.get('name', '')
@@ -377,7 +332,6 @@ class SmartContractProcessor:
                     })
                     rel_id += 1
         
-        # Extract struct member relationships
         for struct in contract_structure.get('structs', []):
             struct_name = struct['name']
             contract_name = struct.get('contract', '')
@@ -409,9 +363,7 @@ class SmartContractProcessor:
                                  contract_structure: Dict[str, Any],
                                  semantic_descriptions: Dict[str, List[str]],
                                  contract_id: str) -> KnowledgeGraph:
-        """Construct the knowledge graph from entities and relationships"""
         
-        # Initialize knowledge graph
         kg = KnowledgeGraph('smartcontract')
         kg.metadata.update({
             'source_file': contract_id,
@@ -424,7 +376,6 @@ class SmartContractProcessor:
             }
         })
         
-        # Add entities to the graph
         for entity in entities:
             entity_data = {
                 'text': entity['text'],
@@ -438,7 +389,6 @@ class SmartContractProcessor:
             
             kg.add_entity(entity['id'], entity_data)
         
-        # Add relationships to the graph
         for relationship in relationships:
             rel_data = {
                 'relation': relationship.get('relation', 'unknown'),
@@ -448,11 +398,9 @@ class SmartContractProcessor:
                 'target_type': relationship.get('target_type', 'UNKNOWN')
             }
             
-            # Handle virtual entities (parameters, members)
             source_id = relationship['source']
             target_id = relationship['target']
             
-            # Create virtual target entity if it doesn't exist
             if target_id.startswith(('param_', 'member_')) and target_id not in kg.entities:
                 virtual_entity_data = {
                     'text': target_id.split('_')[1],  # Extract name from virtual ID
@@ -470,7 +418,6 @@ class SmartContractProcessor:
         return kg
     
     def _categorize_smart_contract_entity(self, entity: Dict[str, Any]) -> str:
-        """Categorize smart contract entity"""
         entity_type = entity.get('type', 'UNKNOWN').upper()
         
         category_mapping = {
@@ -488,32 +435,18 @@ class SmartContractProcessor:
         return category_mapping.get(entity_type, 'OTHER')
     
     def process_contract_file(self, file_path: str) -> KnowledgeGraph:
-        """
-        Process a smart contract from file
-        
-        Args:
-            file_path: Path to the Solidity file
-            
-        Returns:
-            Knowledge graph for the smart contract
-        """
         try:
-            # Validate file
             if not FileHandler.validate_file_path(file_path, Config.SUPPORTED_SMART_CONTRACT_FORMATS):
                 raise ValueError(f"Unsupported file format: {file_path}")
             
-            # Read contract code
             contract_code = FileHandler.read_text_file(file_path)
             if not contract_code:
                 raise ValueError(f"Could not read smart contract file: {file_path}")
             
-            # Extract contract ID from filename
             contract_id = os.path.splitext(os.path.basename(file_path))[0]
             
-            # Process the contract
             knowledge_graph = self.process_contract(contract_code, contract_id)
             
-            # Update metadata with file information
             knowledge_graph.metadata['source_file'] = file_path
             knowledge_graph.metadata['file_info'] = FileHandler.get_file_info(file_path)
             
@@ -524,7 +457,6 @@ class SmartContractProcessor:
             raise
     
     def get_contract_summary(self, contract_id: str) -> Dict[str, Any]:
-        """Get summary of processed smart contract"""
         if contract_id not in self.processed_contracts:
             return {}
         
@@ -544,7 +476,6 @@ class SmartContractProcessor:
         }
     
     def _get_entity_category_distribution(self, entities: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Get distribution of entity categories"""
         categories = {}
         for entity in entities:
             category = self._categorize_smart_contract_entity(entity)
@@ -552,7 +483,6 @@ class SmartContractProcessor:
         return categories
     
     def _get_relationship_type_distribution(self, relationships: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Get distribution of relationship types"""
         types = {}
         for rel in relationships:
             rel_type = rel.get('relation', 'unknown')
@@ -560,7 +490,6 @@ class SmartContractProcessor:
         return types
     
     def _analyze_contract_complexity(self, contract_structure: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze smart contract complexity"""
         complexity_metrics = {
             'total_contracts': len(contract_structure.get('contracts', [])),
             'total_functions': len(contract_structure.get('functions', [])),
@@ -571,7 +500,6 @@ class SmartContractProcessor:
             'total_enums': len(contract_structure.get('enums', []))
         }
         
-        # Calculate complexity score
         complexity_score = 0
         complexity_score += complexity_metrics['total_functions'] * 2
         complexity_score += complexity_metrics['total_variables'] * 1
@@ -580,7 +508,6 @@ class SmartContractProcessor:
         complexity_score += complexity_metrics['total_structs'] * 2
         complexity_score += complexity_metrics['total_enums'] * 1
         
-        # Determine complexity level
         if complexity_score > 100:
             complexity_level = 'Very High'
         elif complexity_score > 50:
@@ -600,14 +527,12 @@ class SmartContractProcessor:
         return complexity_metrics
     
     def get_human_readable_contract(self, contract_id: str) -> str:
-        """Get human-readable description of the smart contract"""
         if contract_id not in self.processed_contracts:
             return "Contract not found"
         
         contract_data = self.processed_contracts[contract_id]
         semantic_descriptions = contract_data['semantic_descriptions']
         
-        # Build readable description
         readable_parts = []
         
         readable_parts.append("=== SMART CONTRACT ANALYSIS ===")
@@ -615,7 +540,6 @@ class SmartContractProcessor:
         readable_parts.append(f"Solidity Version: {contract_data.get('solidity_version', 'Unknown')}")
         readable_parts.append("")
         
-        # Add semantic descriptions for each category
         for category, descriptions in semantic_descriptions.items():
             if descriptions:
                 readable_parts.append(f"=== {category.upper().replace('_', ' ')} ===")
@@ -625,29 +549,17 @@ class SmartContractProcessor:
         return "\n".join(readable_parts)
     
     def generate_smart_contract_from_econtract(self, econtract_analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generate accurate smart contract from e-contract analysis
-        
-        Args:
-            econtract_analysis: Results from e-contract processing
-            
-        Returns:
-            Dictionary containing generated smart contract and validation results
-        """
         try:
             print("Generating smart contract from e-contract analysis...")
             
-            # Generate smart contract using accurate generator
             generation_result = self.contract_generator.generate_smart_contract(econtract_analysis)
             
             if 'error' in generation_result:
                 return generation_result
             
-            # Process the generated contract through our analysis pipeline
             contract_code = generation_result['contract_code']
             knowledge_graph = self.process_contract(contract_code)
             
-            # Enhance result with our analysis
             generation_result.update({
                 'knowledge_graph': knowledge_graph,
                 'ast_analysis': self._analyze_generated_contract(contract_code),
@@ -670,15 +582,11 @@ class SmartContractProcessor:
             }
     
     def _analyze_generated_contract(self, contract_code: str) -> Dict[str, Any]:
-        """Analyze the generated smart contract for completeness"""
         try:
-            # Parse with AST generator
             ast_data = self.ast_generator.generate_ast(contract_code)
             
-            # Parse with Solidity parser
             contract_data = self.solidity_parser.parse_contract(contract_code)
             
-            # Generate human-readable descriptions
             human_readable = self.grammar_engine.ast_to_human_readable(ast_data)
             
             return {
@@ -697,7 +605,6 @@ class SmartContractProcessor:
             }
     
     def _calculate_complexity_metrics(self, contract_data: Dict[str, Any]) -> Dict[str, int]:
-        """Calculate complexity metrics for the generated contract"""
         return {
             'total_functions': len(contract_data.get('functions', [])),
             'public_functions': len([f for f in contract_data.get('functions', []) if f.get('visibility') == 'public']),
@@ -708,49 +615,38 @@ class SmartContractProcessor:
         }
     
     def _calculate_security_score(self, contract_code: str) -> float:
-        """Calculate security score for the generated contract"""
         security_features = 0
         total_checks = 5
         
-        # Check for access control
         if 'modifier only' in contract_code:
             security_features += 1
         
-        # Check for input validation
         if 'require(' in contract_code:
             security_features += 1
         
-        # Check for event emission
         if 'emit ' in contract_code:
             security_features += 1
         
-        # Check for proper error messages
         if 'require(' in contract_code and '"' in contract_code:
             security_features += 1
         
-        # Check for Solidity version
         if 'pragma solidity ^0.8' in contract_code:
             security_features += 1
         
         return security_features / total_checks
     
     def _estimate_gas_efficiency(self, contract_code: str) -> Dict[str, Any]:
-        """Estimate gas efficiency of the generated contract"""
-        # Simple heuristics for gas efficiency
         efficiency_score = 1.0
         issues = []
         
-        # Check for loops (can be gas inefficient)
         if 'for(' in contract_code or 'while(' in contract_code:
             efficiency_score -= 0.1
             issues.append("Contains loops - monitor gas usage")
         
-        # Check for string operations (more expensive)
         if 'string' in contract_code and 'memory' in contract_code:
             efficiency_score -= 0.05
             issues.append("Uses string operations - consider alternatives")
         
-        # Check for mappings (efficient)
         if 'mapping(' in contract_code:
             efficiency_score += 0.1
             if efficiency_score > 1.0:
@@ -763,7 +659,6 @@ class SmartContractProcessor:
         }
     
     def _get_optimization_recommendations(self, contract_code: str) -> List[str]:
-        """Get gas optimization recommendations"""
         recommendations = []
         
         if 'uint256' in contract_code:
