@@ -472,7 +472,7 @@ class KnowledgeGraphComparator:
             for s_relation in s_relations:
                 similarity_score = self._calculate_relation_similarity(e_relation, s_relation)
                 
-                if similarity_score > best_score and similarity_score > 0.12:  # Lowered threshold for better relationship matching
+                if similarity_score > best_score and similarity_score > 0.35:  # Higher threshold for quality relationship matching
                     best_score = similarity_score
                     best_match = s_relation
             
@@ -492,16 +492,16 @@ class KnowledgeGraphComparator:
         relation_e = e_relation.get('relation', '').lower()
         relation_s = s_relation.get('relation', '').lower()
         
-        # 1. Enhanced Business-to-Technical Relationship Mapping (50% - increased weight)
+        # 1. Direct Exact Type Match (HIGHEST PRIORITY - 40%)
+        if relation_e == relation_s:
+            score += 0.40  # Exact match gets highest weight
+        elif self._are_compatible_relations(relation_e, relation_s):
+            score += 0.25
+        
+        # 2. Enhanced Business-to-Technical Relationship Mapping (35%)
         business_relation_mapping = self._get_enhanced_business_relation_mapping(e_relation, s_relation)
         if business_relation_mapping > 0:
-            score += business_relation_mapping * 0.50
-        
-        # 2. Direct Relation Type Similarity (25%)
-        if relation_e == relation_s:
-            score += 0.25
-        elif self._are_compatible_relations(relation_e, relation_s):
-            score += 0.18
+            score += business_relation_mapping * 0.35
         
         # 3. Source and Target Compatibility (15%)
         # 4. Enhanced Contextual Similarity (10%)
@@ -533,24 +533,29 @@ class KnowledgeGraphComparator:
         e_rel = e_relation.get('relation', '').lower()
         s_rel = s_relation.get('relation', '').lower()
         
-        # Enhanced business relation mappings with more patterns
+        # CRITICAL: Direct exact matching for e-contract relationship types
+        # This handles exact type matches between e-contract and smart contract
+        if e_rel == s_rel:
+            return 0.95  # Very high score for exact match
+        
+        # Enhanced business relation mappings with EXACT e-contract types
         enhanced_relation_mappings = {
             'obligation_mappings': {
-                'business_relations': ['obligation', 'must_do', 'shall_perform', 'required_to', 'responsible_for', 
-                                     'duty', 'bound_to', 'commit_to', 'agree_to', 'undertake'],
-                'technical_relations': ['has_parameter', 'contains', 'calls', 'requires', 'modifies', 'validates', 
+                'business_relations': ['obligation_assignment', 'obligation', 'must_do', 'shall_perform', 'required_to', 'responsible_for', 
+                                     'duty', 'bound_to', 'commit_to', 'agree_to', 'undertake', 'responsibility'],
+                'technical_relations': ['obligation_assignment', 'responsibility', 'business_logic', 'has_parameter', 'contains', 'calls', 'requires', 'modifies', 'validates', 
                                       'controls', 'enforces', 'executes']
             },
             'financial_mappings': {
-                'business_relations': ['payment', 'pays', 'financial', 'monetary', 'cost', 'fee', 'salary', 
+                'business_relations': ['financial_obligation', 'payment', 'pays', 'financial', 'monetary', 'cost', 'fee', 'salary', 
                                      'rent', 'deposit', 'transfer', 'compensation'],
-                'technical_relations': ['has_member', 'contains', 'stores', 'transfers', 'updates', 'modifies',
+                'technical_relations': ['financial_obligation', 'business_logic', 'has_member', 'contains', 'stores', 'transfers', 'updates', 'modifies',
                                       'references', 'tracks', 'calculates']
             },
             'temporal_mappings': {
-                'business_relations': ['temporal', 'deadline', 'duration', 'schedule', 'time', 'date', 
-                                     'period', 'expires', 'starts', 'ends'],
-                'technical_relations': ['contains', 'inherits_from', 'depends_on', 'triggers', 'schedules',
+                'business_relations': ['temporal_reference', 'temporal', 'deadline', 'duration', 'schedule', 'time', 'date', 
+                                     'period', 'expires', 'starts', 'ends', 'ends_on'],
+                'technical_relations': ['temporal_reference', 'business_logic', 'contains', 'inherits_from', 'depends_on', 'triggers', 'schedules',
                                       'timestamps', 'tracks', 'monitors']
             },
             'conditional_mappings': {
@@ -560,10 +565,22 @@ class KnowledgeGraphComparator:
                                       'verifies', 'enforces', 'triggers']
             },
             'party_mappings': {
-                'business_relations': ['party_to', 'involves', 'between', 'signatory', 'participant',
+                'business_relations': ['party_relationship', 'party_to', 'involves', 'between', 'signatory', 'participant',
                                      'contractor', 'client', 'provider', 'owner'],
-                'technical_relations': ['has_member', 'contains', 'references', 'stores', 'manages',
+                'technical_relations': ['party_relationship', 'business_logic', 'has_member', 'contains', 'references', 'stores', 'manages',
                                       'owns', 'accesses', 'controls']
+            },
+            'location_mappings': {
+                'business_relations': ['location_reference', 'location', 'address', 'place', 'property', 'site', 'premises'],
+                'technical_relations': ['location_reference', 'business_logic', 'contains', 'stores', 'references', 'manages']
+            },
+            'definition_mappings': {
+                'business_relations': ['is_defined_as', 'definition', 'means', 'refers_to', 'denotes'],
+                'technical_relations': ['is_defined_as', 'defines', 'references', 'contains', 'stores']
+            },
+            'association_mappings': {
+                'business_relations': ['co_occurrence', 'association', 'relates_to', 'linked_to', 'connected_to'],
+                'technical_relations': ['co_occurrence', 'business_logic', 'references', 'depends_on', 'contains']
             },
             'status_mappings': {
                 'business_relations': ['status', 'state', 'active', 'terminated', 'completed', 'pending',
@@ -730,13 +747,26 @@ class KnowledgeGraphComparator:
         return intersection / union if union > 0 else 0.0
     
     def _are_compatible_relations(self, rel1: str, rel2: str) -> bool:
-        """Enhanced relation compatibility check"""
+        """Enhanced relation compatibility check with exact e-contract type support"""
+        # E-contract exact type mappings to technical implementations
         relation_mappings = {
-            'obligation': ['contains', 'has_parameter', 'requires', 'controls'],
-            'financial': ['contains', 'has_member', 'stores', 'transfers'],
-            'temporal': ['contains', 'inherits_from', 'depends_on', 'triggers'],
-            'condition': ['contains', 'has_parameter', 'validates', 'controls'],
-            'co_occurrence': ['contains', 'has_member', 'references', 'includes']
+            'obligation_assignment': ['obligation', 'responsibility', 'business_logic', 'contains', 'has_parameter', 'requires', 'controls'],
+            'obligation': ['obligation_assignment', 'responsibility', 'contains', 'has_parameter', 'requires', 'controls'],
+            'responsibility': ['obligation_assignment', 'obligation', 'business_logic', 'contains', 'requires', 'controls'],
+            'financial_obligation': ['financial', 'business_logic', 'contains', 'has_member', 'stores', 'transfers'],
+            'financial': ['financial_obligation', 'contains', 'has_member', 'stores', 'transfers'],
+            'temporal_reference': ['temporal', 'business_logic', 'contains', 'inherits_from', 'depends_on', 'triggers'],
+            'temporal': ['temporal_reference', 'contains', 'inherits_from', 'depends_on', 'triggers'],
+            'ends_on': ['temporal_reference', 'temporal', 'business_logic', 'contains', 'triggers'],
+            'location_reference': ['location', 'business_logic', 'contains', 'stores', 'references'],
+            'location': ['location_reference', 'contains', 'stores', 'references'],
+            'party_relationship': ['party', 'business_logic', 'contains', 'has_member', 'references', 'stores'],
+            'party': ['party_relationship', 'contains', 'has_member', 'references'],
+            'is_defined_as': ['definition', 'business_logic', 'defines', 'contains', 'references'],
+            'definition': ['is_defined_as', 'defines', 'contains', 'references'],
+            'co_occurrence': ['association', 'business_logic', 'contains', 'has_member', 'references', 'includes'],
+            'association': ['co_occurrence', 'contains', 'has_member', 'references'],
+            'condition': ['contains', 'has_parameter', 'validates', 'controls']
         }
         
         for key, compatible_rels in relation_mappings.items():

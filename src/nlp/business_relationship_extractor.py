@@ -51,6 +51,13 @@ class BusinessRelationshipExtractor:
                     'confidence': 0.90
                 },
                 {
+                    'pattern': r'(\w+(?:\s+\w+)*)\s+(?:is\s+the\s+owner\s+of|possesses)\s+([^.]+)',
+                    'relation': 'ownership',
+                    'source_group': 1,
+                    'target_group': 2,
+                    'confidence': 0.85
+                },
+                {
                     'pattern': r'([^.]+?)\s+(?:belongs?\s+to|is\s+(?:the\s+)?property\s+of)\s+(\w+(?:\s+\w+)*)',
                     'relation': 'ownership',
                     'source_group': 2,  # owner
@@ -141,6 +148,8 @@ class BusinessRelationshipExtractor:
             sentence = sentence.strip()
             if not sentence:
                 continue
+            
+            # Extract relationships from each sentence with enhanced matching
             
             # Extract relationships from each sentence
             sentence_relationships = self._extract_from_sentence(sentence, entities)

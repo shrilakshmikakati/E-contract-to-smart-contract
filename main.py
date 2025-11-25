@@ -38,12 +38,9 @@ def setup_dependencies():
 
 def launch_gui():
     """Launch the GUI application"""
-    print("🚀 E-CONTRACT TO SMART CONTRACT ANALYSIS SYSTEM")
+    print("E-CONTRACT TO SMART CONTRACT ANALYSIS SYSTEM")
     print("=" * 60)
-    print("📋 Upload e-contracts and generate smart contracts with accuracy metrics")
-    print("✅ Knowledge graph comparison")
-    print("✅ Accuracy analysis")  
-    print("✅ Download generated contracts")
+    print("Upload e-contracts and generate smart contracts")
     print("=" * 60)
     
     setup_dependencies()
@@ -74,13 +71,20 @@ def main():
     # Check for command line arguments
     if len(sys.argv) > 1:
         if sys.argv[1] in ['--help', '-h']:
-            print("E-Contract to Smart Contract Analysis System")
+            print("E-Contract to Smart Contract Analysis System - Enhanced Edition")
             print("Usage: python main.py")
             print("This launches the GUI interface for:")
-            print("• Uploading e-contracts")
-            print("• Generating smart contracts")
-            print("• Viewing accuracy metrics")
-            print("• Downloading results")
+            print("• Uploading e-contracts (.txt, .pdf, .docx, .md)")
+            print("• Smart contract generation with business logic extraction")
+            print("• Solidity code generation with comprehensive business logic")
+            print("• Quality relationship filtering and duplicate elimination")
+            print("• Compilation validation and syntax verification")
+            print("\nFeatures:")
+            print("  - Business logic extraction from contract text")
+            print("  - Relationship preservation and implementation")
+            print("  - State variables, events, and function generation")
+            print("  - Solidity syntax compliance")
+            print("  - Intelligent filtering of duplicates and low-quality relationships")
             return
         else:
             print("Unknown argument. Use --help for usage information.")

@@ -139,9 +139,21 @@ class EContractProcessor:
                 source_entity = next(e for e in entities if e['id'] == source_id)
                 target_entity = next(e for e in entities if e['id'] == target_id)
             else:
-                # Otherwise, find entities by text
+                # Enhanced entity matching with fuzzy matching for better connectivity
                 source_entity = self._find_entity_by_text(entities, relationship.get('source', ''))
                 target_entity = self._find_entity_by_text(entities, relationship.get('target', ''))
+                
+                # If exact match fails, try fuzzy matching for better business logic connectivity
+                if not source_entity:
+                    source_entity = self._find_entity_fuzzy_match(entities, relationship.get('source', ''))
+                if not target_entity:
+                    target_entity = self._find_entity_fuzzy_match(entities, relationship.get('target', ''))
+                    
+                # If still no match, create implicit entities to maintain business relationships
+                if not source_entity and relationship.get('source'):
+                    source_entity = self._create_implicit_entity(entities, relationship.get('source', ''), kg)
+                if not target_entity and relationship.get('target'):
+                    target_entity = self._create_implicit_entity(entities, relationship.get('target', ''), kg)
             
             if source_entity and target_entity:
                 rel_data = {
@@ -161,18 +173,181 @@ class EContractProcessor:
                     rel_data
                 )
         
+        # Post-process to ensure better connectivity
+        self._enhance_graph_connectivity(kg, entities, relationships)
+        
         return kg
+    
+    def _find_entity_fuzzy_match(self, entities: List[Dict[str, Any]], text: str) -> Optional[Dict[str, Any]]:
+        """Find entity using fuzzy matching for better business logic connectivity"""
+        if not text or not text.strip():
+            return None
+            
+        text_lower = str(text).lower().strip()
+        
+        # Try partial matches for business entities
+        for entity in entities:
+            entity_text = str(entity.get('text', '')).lower().strip()
+            
+            # Check if one contains the other (for business names, etc.)
+            if len(text_lower) >= 3 and len(entity_text) >= 3:
+                if text_lower in entity_text or entity_text in text_lower:
+                    return entity
+                    
+                # Check for common business terms
+                text_words = set(text_lower.split())
+                entity_words = set(entity_text.split())
+                common_words = text_words.intersection(entity_words)
+                
+                # If significant overlap, consider it a match
+                if len(common_words) >= min(2, max(len(text_words), len(entity_words)) // 2):
+                    return entity
+        
+        return None
+    
+    def _create_implicit_entity(self, entities: List[Dict[str, Any]], text: str, kg) -> Dict[str, Any]:
+        """Create implicit entity to maintain business relationship connectivity"""
+        if not text or not text.strip():
+            return None
+            
+        # Create new entity for missing business elements
+        entity_id = f"implicit_entity_{len(entities)}"
+        entity_data = {
+            'id': entity_id,
+            'text': str(text).strip(),
+            'label': 'BUSINESS_ENTITY',
+            'start': -1,
+            'end': -1,
+            'confidence': 0.8,  # Lower confidence for implicit entities
+            'extraction_method': 'implicit_creation',
+            'category': 'IMPLICIT_BUSINESS'
+        }
+        
+        # Add to entities list and knowledge graph
+        entities.append(entity_data)
+        kg_entity_data = {
+            'text': entity_data['text'],
+            'type': entity_data['label'],
+            'confidence': entity_data['confidence'],
+            'start_pos': -1,
+            'end_pos': -1,
+            'extraction_method': 'implicit_creation',
+            'category': 'IMPLICIT_BUSINESS'
+        }
+        kg.add_entity(entity_id, kg_entity_data)
+        
+        return entity_data
+    
+    def _enhance_graph_connectivity(self, kg, entities: List[Dict[str, Any]], relationships: List[Dict[str, Any]]):
+        """Enhance knowledge graph connectivity by creating additional relationships for isolated nodes"""
+        
+        # Find isolated nodes (entities with no connections)
+        all_entity_ids = {e['id'] for e in entities}
+        connected_entity_ids = set()
+        
+        # Collect all entities that have at least one relationship
+        for edge in kg.graph.edges():
+            connected_entity_ids.add(edge[0])
+            connected_entity_ids.add(edge[1])
+        
+        isolated_entity_ids = all_entity_ids - connected_entity_ids
+        
+        if isolated_entity_ids and connected_entity_ids:
+            # Connect isolated entities to the main component
+            main_component_entities = list(connected_entity_ids)
+            
+            for isolated_id in isolated_entity_ids:
+                # Find the isolated entity
+                isolated_entity = next((e for e in entities if e['id'] == isolated_id), None)
+                if not isolated_entity:
+                    continue
+                
+                # Find a suitable entity to connect to (preferably with similar characteristics)
+                target_entity_id = self._find_suitable_connection_target(isolated_entity, entities, main_component_entities)
+                
+                if target_entity_id:
+                    # Create a connectivity relationship
+                    rel_id = f"connectivity_rel_{len(relationships)}"
+                    rel_data = {
+                        'relation': 'business_connection',
+                        'confidence': 0.7,  # Lower confidence for connectivity relationships
+                        'sentence': f"Connectivity relationship between {isolated_entity['text']} and target entity",
+                        'pattern': 'connectivity_enhancement',
+                        'source_type': isolated_entity.get('label', 'UNKNOWN'),
+                        'target_type': 'BUSINESS_ENTITY',
+                        'extraction_method': 'connectivity_enhancement'
+                    }
+                    
+                    # Add the connectivity relationship to the graph
+                    kg.add_relationship(rel_id, isolated_id, target_entity_id, rel_data)
+                    
+                    # Also add to relationships list for completeness
+                    relationships.append({
+                        'id': rel_id,
+                        'source': isolated_id,
+                        'target': target_entity_id,
+                        'relation': 'business_connection',
+                        'confidence': 0.7,
+                        'extraction_method': 'connectivity_enhancement'
+                    })
+    
+    def _find_suitable_connection_target(self, isolated_entity: Dict[str, Any], entities: List[Dict[str, Any]], connected_ids: List[str]) -> str:
+        """Find the most suitable entity to connect an isolated entity to"""
+        
+        isolated_text = str(isolated_entity.get('text', '')).lower()
+        isolated_label = isolated_entity.get('label', 'UNKNOWN')
+        
+        # Score potential connections
+        best_target = None
+        best_score = 0
+        
+        for entity_id in connected_ids:
+            target_entity = next((e for e in entities if e['id'] == entity_id), None)
+            if not target_entity:
+                continue
+            
+            score = 0
+            target_text = str(target_entity.get('text', '')).lower()
+            target_label = target_entity.get('label', 'UNKNOWN')
+            
+            # Same label type gets higher score
+            if isolated_label == target_label:
+                score += 3
+            
+            # Similar text content
+            isolated_words = set(isolated_text.split())
+            target_words = set(target_text.split())
+            common_words = isolated_words.intersection(target_words)
+            if common_words:
+                score += len(common_words) * 2
+            
+            # Business entity types get preference
+            if 'business' in target_label.lower() or target_label in ['ORG', 'PERSON', 'PARTIES']:
+                score += 2
+            
+            # Update best target if this scores higher
+            if score > best_score:
+                best_score = score
+                best_target = entity_id
+        
+        # If no good match found, just connect to the first available entity
+        if not best_target and connected_ids:
+            best_target = connected_ids[0]
+        
+        return best_target
     
     def _categorize_entity(self, entity: Dict[str, Any]) -> str:
         """Categorize entity into contract-specific categories"""
         entity_type = entity.get('label', 'UNKNOWN').upper()
         
-        # Contract-specific categorization
+        # Enhanced business-focused categorization
         category_mapping = {
-            'PERSON': 'PARTY',
-            'ORG': 'ORGANIZATION', 
-            'PARTIES': 'PARTY',
-            'CONTRACT_PARTY': 'PARTY',
+            'PERSON': 'BUSINESS_PARTY',
+            'ORG': 'BUSINESS_ORGANIZATION', 
+            'PARTIES': 'BUSINESS_PARTY',
+            'CONTRACT_PARTY': 'BUSINESS_PARTY',
+            'BUSINESS_ENTITY': 'BUSINESS_ENTITY',
+            'IMPLICIT_BUSINESS': 'BUSINESS_RELATIONSHIP',
             'MONEY': 'FINANCIAL',
             'MONETARY_AMOUNT': 'FINANCIAL',
             'CURRENCY': 'FINANCIAL',
