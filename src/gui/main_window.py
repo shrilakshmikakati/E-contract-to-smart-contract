@@ -1561,13 +1561,34 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             result_text += f"Overall Generation Accuracy: {accuracy_score:.2%}\n"
             result_text += f"Deployment Ready: {'✅ Yes' if deployment_ready else '⚠️ No'}\n"
             
-            # Detailed accuracy breakdown
+            # Detailed accuracy breakdown - FIXED to use correct field names
             result_text += f"\n📈 ACCURACY BREAKDOWN:\n"
-            result_text += f"Entity Coverage: {accuracy_analysis.get('entity_coverage', 0):.2%}\n"
-            result_text += f"Relationship Coverage: {accuracy_analysis.get('relation_coverage', 5.933):.1%}\n"
-            result_text += f"Business Logic Enforcement: {accuracy_analysis.get('business_logic_score', 1.0):.2%} (Complete)\n"
-            result_text += f"Knowledge Graph Connectivity: Connected ✅\n"
-            result_text += f"Business Rule Enforcement: Comprehensive ✅\n"
+            entity_coverage_e_to_s = accuracy_analysis.get('entity_coverage_e_to_s', 0)
+            entity_coverage_s_to_e = accuracy_analysis.get('entity_coverage_s_to_e', 0)
+            relation_coverage_e_to_s = accuracy_analysis.get('relation_coverage_e_to_s', 0)
+            relation_coverage_s_to_e = accuracy_analysis.get('relation_coverage_s_to_e', 0)
+            
+            result_text += f"Entity Coverage (E→S): {entity_coverage_e_to_s:.2%}\n"
+            result_text += f"Entity Coverage (S→E): {entity_coverage_s_to_e:.2%}\n"
+            result_text += f"Relationship Coverage (E→S): {relation_coverage_e_to_s:.2%}\n"
+            result_text += f"Relationship Coverage (S→E): {relation_coverage_s_to_e:.2%}\n"
+            result_text += f"Business Logic Enforcement: {accuracy_analysis.get('business_logic_score', 0):.2%}\n"
+            
+            # Show coverage status and critical issues
+            coverage_status = accuracy_analysis.get('coverage_status', {})
+            if coverage_status.get('entity_coverage_critical', False):
+                result_text += f"⚠️ CRITICAL: Zero entity coverage detected!\n"
+                result_text += f"   E-contract entities: {coverage_status.get('total_entity_count_econtract', 0)}\n"
+                result_text += f"   Smart contract entities: {coverage_status.get('total_entity_count_smartcontract', 0)}\n"
+                result_text += f"   Matched entities: {coverage_status.get('matched_entities_e_to_s', 0)}\n"
+            
+            # Show penalty information if applied
+            penalty = accuracy_analysis.get('critical_coverage_penalty', 1.0)
+            if penalty < 1.0:
+                base_score = accuracy_analysis.get('base_accuracy_score', 0)
+                result_text += f"📉 Coverage Penalty Applied: {penalty:.1%} (Base score: {base_score:.2%})\n"
+            
+            result_text += f"Knowledge Graph Connectivity: {'Connected ✅' if not coverage_status.get('entity_coverage_critical', True) else 'Disconnected ❌'}\n"
             result_text += f"Contract Completeness: {accuracy_analysis.get('completeness_score', 0):.2%}\n"
             
             # Enhanced interpretation

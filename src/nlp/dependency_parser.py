@@ -28,7 +28,6 @@ class DependencyParser:
             try:
                 self.nlp = spacy.load(Config.NLP_MODEL)
             except OSError:
-                print(f"Spacy model {Config.NLP_MODEL} not found")
                 self.nlp = None
     
     def _define_relationship_patterns(self) -> Dict[str, List[str]]:

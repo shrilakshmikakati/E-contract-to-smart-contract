@@ -58,7 +58,7 @@ def main():
     
     if len(sys.argv) > 1:
         if sys.argv[1] in ['--help', '-h']:
-            print("E-Contract to Smart Contract Analysis System - Enhanced Edition")
+            print("E-Contract to Smart Contract Analysis System")
             print("Usage: python main.py")
             print("This launches the GUI interface for:")
             print("• Uploading e-contracts (.txt, .pdf, .docx, .md)")

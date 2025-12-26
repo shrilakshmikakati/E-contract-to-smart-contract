@@ -39,9 +39,6 @@ class EntityExtractor:
                 self.nlp = spacy.load(Config.NLP_MODEL)
                 self.matcher = Matcher(self.nlp.vocab)
             except OSError:
-                if not hasattr(EntityExtractor, '_spacy_warning_shown'):
-                    print(f"⚠️  spaCy model {Config.NLP_MODEL} not found - using fallback processing")
-                    EntityExtractor._spacy_warning_shown = True
                 self.nlp = None
     
     def _setup_patterns(self):
