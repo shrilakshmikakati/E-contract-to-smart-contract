@@ -32,6 +32,16 @@ class KnowledgeGraphComparator:
             comparison_id = f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         print(f"🔄 BIDIRECTIONAL COMPARISON: E-contract has {len(g_e.entities)} entities, Smart contract has {len(g_s.entities)} entities")
+        
+        # DIAGNOSTIC: Check for entity count imbalance
+        entity_ratio = len(g_s.entities) / len(g_e.entities) if len(g_e.entities) > 0 else float('inf')
+        if entity_ratio > 5:
+            print(f"   ⚠️  ENTITY IMBALANCE: Smart contract has {entity_ratio:.1f}x more entities than e-contract")
+            print(f"   💡 Suggestion: E-contract may need more granular entity extraction")
+        elif entity_ratio < 0.2:
+            print(f"   ⚠️  ENTITY IMBALANCE: E-contract has {1/entity_ratio:.1f}x more entities than smart contract")
+            print(f"   💡 Suggestion: Smart contract extraction may be too granular")
+        
         print(f"E-contract sample entities: {list(g_e.entities.keys())[:5]}")
         print(f"Smart contract sample entities: {list(g_s.entities.keys())[:5]}")
         
@@ -39,6 +49,15 @@ class KnowledgeGraphComparator:
         e_connected = nx.is_connected(g_e.graph.to_undirected()) if len(g_e.graph) > 0 else False
         s_connected = nx.is_connected(g_s.graph.to_undirected()) if len(g_s.graph) > 0 else False
         print(f"🔗 GRAPH CONNECTIVITY: E-contract connected={e_connected}, Smart contract connected={s_connected}")
+        
+        # If smart contract graph is disconnected, try to improve connectivity
+        if not s_connected and len(g_s.graph) > 1:
+            self._improve_smart_contract_connectivity(g_s)
+            s_connected = nx.is_connected(g_s.graph.to_undirected())
+            if s_connected:
+                print(f"   ✅ Smart contract connectivity improved!")
+            else:
+                print(f"   ⚠️  Smart contract remains disconnected ({nx.number_connected_components(g_s.graph.to_undirected())} components)")
         
         # DEBUG: Show actual entity contents
         if len(g_e.entities) > 0:
@@ -810,12 +829,19 @@ class KnowledgeGraphComparator:
             else:
                 print()
         
-        # Show unmatched summary (reduced verbosity)
+        # Show unmatched summary with specific EMITS analysis
         if unmatched_types:
             total_unmatched = sum(unmatched_types.values())
             print(f"   ❌ Unmatched: {total_unmatched} relationships ({len(unmatched_types)} types)")
+            
+            # Special analysis for EMITS relationships
+            emits_unmatched = unmatched_types.get('EMITS', 0) + unmatched_types.get('emits', 0)
+            if emits_unmatched > 0:
+                print(f"      🔔 EMITS Analysis: {emits_unmatched} EMITS relationships unmatched")
+                print(f"      💡 EMITS events may represent business outcomes not explicitly modeled in e-contract")
+            
             # Only show details for types with many unmatched items
-            problematic = {k: v for k, v in unmatched_types.items() if v >= 5}
+            problematic = {k: v for k, v in unmatched_types.items() if v >= 3}  # Lowered threshold
             if problematic:
                 print(f"      High unmatched counts: {problematic}")
         
@@ -1051,17 +1077,19 @@ class KnowledgeGraphComparator:
             'validates': ['enforces', 'obligation_assignment', 'responsibility', 'checks'],
             'enforces': ['obligation_assignment', 'responsibility', 'validates', 'ensures'],
             'tracks': ['manages', 'financial_obligation', 'temporal_reference', 'monitors'],
-            'logs': ['records', 'emits', 'documents', 'tracks'],
-            'emits': ['logs', 'announces', 'publishes', 'signals'],
+            'logs': ['records', 'emits', 'documents', 'tracks', 'obligation_assignment'],
+            'emits': ['logs', 'announces', 'publishes', 'signals', 'obligation_assignment', 'responsibility', 'temporal_reference'],
+            'EMITS': ['logs', 'announces', 'publishes', 'signals', 'obligation_assignment', 'responsibility', 'temporal_reference', 'party_relationship'],
             'manages': ['controls', 'responsibility', 'tracks', 'handles'],
             'controls': ['manages', 'responsibility', 'enforces', 'governs'],
             
             # Reverse mappings (business to technical)
-            'obligation_assignment': ['initializes', 'validates', 'enforces', 'manages'],
-            'responsibility': ['initializes', 'validates', 'enforces', 'controls'],
-            'financial_obligation': ['tracks', 'manages', 'validates', 'processes'],
-            'temporal_reference': ['tracks', 'manages', 'validates', 'schedules'],
-            'party_relationship': ['controls', 'manages', 'validates', 'assigns']
+            'obligation_assignment': ['initializes', 'validates', 'enforces', 'manages', 'emits', 'EMITS'],
+            'responsibility': ['initializes', 'validates', 'enforces', 'controls', 'emits', 'EMITS'],
+            'financial_obligation': ['tracks', 'manages', 'validates', 'processes', 'emits'],
+            'temporal_reference': ['tracks', 'manages', 'validates', 'schedules', 'emits', 'EMITS'],
+            'party_relationship': ['controls', 'manages', 'validates', 'assigns', 'emits', 'EMITS'],
+            'is_defined_as': ['defines', 'specifies', 'creates', 'emits', 'EMITS']
         }
         
         # Check direct mappings
@@ -1073,10 +1101,25 @@ class KnowledgeGraphComparator:
             if any(term in e_rel_type for term in technical_mappings[s_rel_type]):
                 return 0.7
         
-        # Special handling for EMITS relationships
+        # Special handling for EMITS relationships - broader matching
         if 'emits' in s_rel_type or 'emit' in s_rel_type:
-            if any(term in e_rel_type for term in ['logs', 'records', 'announces', 'publishes', 'signals']):
-                return 0.6
+            emit_business_concepts = [
+                'logs', 'records', 'announces', 'publishes', 'signals',
+                'obligation', 'responsibility', 'temporal', 'party', 
+                'financial', 'assignment', 'defined', 'creates'
+            ]
+            if any(concept in e_rel_type for concept in emit_business_concepts):
+                return 0.8  # Higher score for EMITS matches
+        
+        # Enhanced EMITS event mapping to business outcomes
+        if 'EMITS' in s_rel_type:
+            business_outcomes = [
+                'obligation', 'responsibility', 'temporal', 'party',
+                'financial', 'assignment', 'defined', 'creates',
+                'logs', 'records', 'tracks'
+            ]
+            if any(outcome in e_rel_type for outcome in business_outcomes):
+                return 0.85  # Very high score for EMITS to business outcome mapping
         
         # Special handling for initialization and setup relationships
         if any(term in s_rel_type for term in ['init', 'setup', 'create', 'establish']):
@@ -1122,6 +1165,73 @@ class KnowledgeGraphComparator:
             print(f"   🔄 Deduplicated {original_count} → {final_count} relationships ({original_count - final_count} duplicates removed)")
         
         return deduplicated
+    
+    def _improve_smart_contract_connectivity(self, s_kg):
+        """
+        Improve smart contract graph connectivity by adding logical relationships
+        between disconnected components based on common patterns
+        """
+        try:
+            # Find all connected components
+            components = list(nx.connected_components(s_kg.graph.to_undirected()))
+            if len(components) <= 1:
+                return  # Already connected
+            
+            # Sort components by size (largest first)
+            components.sort(key=len, reverse=True)
+            main_component = components[0]
+            
+            # Strategy 1: Connect contract entities to main component
+            contract_entities = [
+                eid for eid, data in s_kg.entities.items() 
+                if data.get('type') in ['CONTRACT', 'INTERFACE']
+            ]
+            
+            for contract_id in contract_entities:
+                if contract_id not in main_component:
+                    # Find a suitable entity in main component to connect to
+                    for main_entity_id in list(main_component)[:5]:  # Check first 5 entities
+                        main_entity = s_kg.entities.get(main_entity_id, {})
+                        if main_entity.get('type') in ['FUNCTION', 'STATE_VARIABLE', 'PARAMETER']:
+                            # Add CONTAINS relationship
+                            rel_id = f"contains_{contract_id}_{main_entity_id}"
+                            s_kg.add_relationship(rel_id, contract_id, main_entity_id, {
+                                'relation': 'CONTAINS',
+                                'auto_generated': True,
+                                'reason': 'connectivity_improvement'
+                            })
+                            break
+            
+            # Strategy 2: Connect function-parameter relationships
+            for i, component in enumerate(components[1:], 1):  # Skip main component
+                function_nodes = [
+                    eid for eid in component 
+                    if s_kg.entities.get(eid, {}).get('type') == 'FUNCTION'
+                ]
+                param_nodes = [
+                    eid for eid in main_component
+                    if s_kg.entities.get(eid, {}).get('type') == 'PARAMETER'
+                ]
+                
+                # Connect functions to related parameters based on name similarity
+                for func_id in function_nodes:
+                    func_name = s_kg.entities.get(func_id, {}).get('text', '').lower()
+                    for param_id in param_nodes:
+                        param_name = s_kg.entities.get(param_id, {}).get('text', '').lower()
+                        
+                        # Simple name-based connection (e.g., 'payRent' function -> 'rent' parameter)
+                        if any(word in func_name for word in param_name.split('_') if len(word) > 2) or \
+                           any(word in param_name for word in func_name.split('_') if len(word) > 2):
+                            rel_id = f"uses_{func_id}_{param_id}"
+                            s_kg.add_relationship(rel_id, func_id, param_id, {
+                                'relation': 'uses',
+                                'auto_generated': True,
+                                'reason': 'connectivity_improvement'
+                            })
+                            break
+            
+        except Exception as e:
+            print(f"   ⚠️  Error improving connectivity: {str(e)[:50]}...")
     
     def _calculate_semantic_relation_similarity(self, e_relation: Dict[str, Any], s_relation: Dict[str, Any]) -> float:
         e_context = (e_relation.get('relation', '') + ' ' + 
