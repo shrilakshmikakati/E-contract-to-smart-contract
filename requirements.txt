@@ -6,7 +6,6 @@ networkx>=3.1
 
 # NLP dependencies
 nltk>=3.8
-spacy>=3.6
 textblob>=0.17
 gensim>=4.3
 

@@ -19,12 +19,8 @@ def setup_dependencies():
     except ImportError:
         print("NLTK not available - using basic processing")
     
-    try:
-        import spacy
-        spacy.load('en_core_web_sm')
-        print("✓ spaCy model available")
-    except (ImportError, OSError):
-        print("⚠️  spaCy model not found - using fallback processing")
+    # spaCy removed - system now works entirely with optimized fallback processing
+    print("✓ NLP processing ready (optimized fallback mode)")
     
     print("Dependency setup complete.")
 

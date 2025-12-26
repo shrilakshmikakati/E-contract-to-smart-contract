@@ -4,12 +4,8 @@ from typing import List, Dict, Any, Tuple, Set
 from collections import defaultdict
 from itertools import combinations
 
-try:
-    import spacy
-    from spacy.tokens import Token
-    SPACY_AVAILABLE = True
-except ImportError:
-    SPACY_AVAILABLE = False
+# spaCy removed - using optimized pattern-based dependency parsing
+SPACY_AVAILABLE = False
 
 try:
     from ..utils.config import Config

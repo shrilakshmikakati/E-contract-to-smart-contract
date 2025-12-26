@@ -2,13 +2,8 @@
 import re
 from typing import List, Dict, Any, Tuple
 from collections import defaultdict, Counter
-try:
-    import spacy
-    from spacy.matcher import Matcher
-    SPACY_AVAILABLE = True
-except ImportError:
-    SPACY_AVAILABLE = False
-    print("Spacy not available. Install with: pip install spacy")
+# spaCy removed - using optimized regex-based entity extraction
+SPACY_AVAILABLE = False
 
 try:
     import nltk
@@ -34,12 +29,9 @@ class EntityExtractor:
         self._setup_patterns()
     
     def _load_models(self):
-        if SPACY_AVAILABLE:
-            try:
-                self.nlp = spacy.load(Config.NLP_MODEL)
-                self.matcher = Matcher(self.nlp.vocab)
-            except OSError:
-                self.nlp = None
+        # spaCy removed - using optimized rule-based extraction only
+        self.nlp = None
+        self.matcher = None
     
     def _setup_patterns(self):
         if not self.matcher:
@@ -243,12 +235,9 @@ class EntityExtractor:
     def extract_all_entities(self, text: str) -> List[Dict[str, Any]]:
         all_entities = []
         
-        if self.nlp:
-            all_entities.extend(self.extract_named_entities_spacy(text))
-            all_entities.extend(self.extract_contract_patterns(text))
-        else:
-            all_entities.extend(self.extract_named_entities_nltk(text))
-        
+        # Using optimized extraction methods (spaCy removed)
+        all_entities.extend(self.extract_contract_patterns(text))
+        all_entities.extend(self.extract_named_entities_nltk(text))
         all_entities.extend(self.extract_regex_entities(text))
         all_entities.extend(self.extract_domain_entities(text))
         

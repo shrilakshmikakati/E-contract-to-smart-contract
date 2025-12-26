@@ -1636,21 +1636,51 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
         summary = self.comparison_results.get('summary', {})
         result_text += "COMPARISON SUMMARY:\n"
         result_text += f"Overall Similarity Score: {summary.get('overall_similarity_score', 0):.3f}\n"
-        result_text += f"Entity Matches: {summary.get('total_entity_matches', 0)}\n"
-        result_text += f"Relationship Matches: {summary.get('total_relation_matches', 0)}\n\n"
+        # Fixed: Use correct field names from bidirectional comparison
+        entity_matches_e_to_s = summary.get('total_entity_matches_e_to_s', 0)
+        entity_matches_s_to_e = summary.get('total_entity_matches_s_to_e', 0)
+        total_entity_matches = entity_matches_e_to_s + entity_matches_s_to_e
+        result_text += f"Entity Matches (E→S): {entity_matches_e_to_s}\n"
+        result_text += f"Entity Matches (S→E): {entity_matches_s_to_e}\n"
+        result_text += f"Total Entity Matches: {total_entity_matches}\n"
         
-        # Compliance Assessment
+        # Relationship matches
+        rel_matches_e_to_s = summary.get('total_relation_matches_e_to_s', 0)
+        rel_matches_s_to_e = summary.get('total_relation_matches_s_to_e', 0)
+        total_rel_matches = rel_matches_e_to_s + rel_matches_s_to_e
+        result_text += f"Relationship Matches (E→S): {rel_matches_e_to_s}\n"
+        result_text += f"Relationship Matches (S→E): {rel_matches_s_to_e}\n"
+        result_text += f"Total Relationship Matches: {total_rel_matches}\n\n"
+        
+        # Compliance Assessment with Enhanced Metrics
         compliance = self.comparison_results.get('compliance_assessment', {})
+        bidirectional_metrics = self.comparison_results.get('bidirectional_metrics', {})
+        
         result_text += "COMPLIANCE ASSESSMENT:\n"
         result_text += f"Overall Compliance Score: {compliance.get('overall_compliance_score', 0):.3f}\n"
         result_text += f"Compliance Level: {compliance.get('compliance_level', 'Unknown')}\n"
-        result_text += f"Is Compliant: {'Yes' if compliance.get('is_compliant', False) else 'No'}\n"
+        result_text += f"Is Compliant: {'Yes' if compliance.get('is_compliant', False) else 'No'}\n\n"
+        
+        # Add Enhanced Bidirectional Metrics
+        if bidirectional_metrics:
+            result_text += "BIDIRECTIONAL ALIGNMENT METRICS:\n"
+            result_text += f"Entity Alignment Score: {bidirectional_metrics.get('entity_alignment_score', 0):.1%}\n"
+            result_text += f"Relationship Alignment Score: {bidirectional_metrics.get('relationship_alignment_score', 0):.1%}\n"
+            result_text += f"Bidirectional Similarity: {bidirectional_metrics.get('bidirectional_similarity', 0):.1%}\n"
+            result_text += f"Mutual Entity Coverage: {bidirectional_metrics.get('mutual_entity_coverage', 0):.1%}\n"
+            result_text += f"Mutual Relationship Coverage: {bidirectional_metrics.get('mutual_relationship_coverage', 0):.1%}\n\n"
+            
+            # Compliance details from bidirectional assessment
+            bd_compliance = bidirectional_metrics.get('bidirectional_compliance', {})
+            if bd_compliance:
+                result_text += f"Bidirectional Compliance Level: {bd_compliance.get('compliance_level', 'Unknown')}\n"
+                result_text += f"Compliance Percentage: {bd_compliance.get('compliance_percentage', 0):.1f}%\n\n"
         
         if compliance.get('compliance_issues'):
             result_text += "Compliance Issues:\n"
             for issue in compliance['compliance_issues']:
                 result_text += f"  - {issue}\n"
-        result_text += "\n"
+            result_text += "\n"
         
         # Enhanced Recommendations
         recommendations = self.comparison_results.get('recommendations', [])
@@ -1972,8 +2002,15 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             viz_text += "COMPARISON INFORMATION:\n"
             summary = self.comparison_results.get('summary', {})
             viz_text += f"  Overall Similarity: {summary.get('overall_similarity_score', 0):.3f}\n"
-            viz_text += f"  Entity Matches: {summary.get('total_entity_matches', 0)}\n"
-            viz_text += f"  Relationship Matches: {summary.get('total_relation_matches', 0)}\n"
+            # Fixed: Use correct field names
+            entity_matches_e_to_s = summary.get('total_entity_matches_e_to_s', 0)
+            entity_matches_s_to_e = summary.get('total_entity_matches_s_to_e', 0)
+            rel_matches_e_to_s = summary.get('total_relation_matches_e_to_s', 0)
+            rel_matches_s_to_e = summary.get('total_relation_matches_s_to_e', 0)
+            viz_text += f"  Entity Matches (E→S): {entity_matches_e_to_s}\n"
+            viz_text += f"  Entity Matches (S→E): {entity_matches_s_to_e}\n"
+            viz_text += f"  Relationship Matches (E→S): {rel_matches_e_to_s}\n"
+            viz_text += f"  Relationship Matches (S→E): {rel_matches_s_to_e}\n"
         
         # Create or update Visualization tab
         visualization_tab_frame = None

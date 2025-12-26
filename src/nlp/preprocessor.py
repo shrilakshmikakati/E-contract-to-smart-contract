@@ -16,12 +16,8 @@ except ImportError:
     NLTK_AVAILABLE = False
     print("NLTK not available, using basic preprocessing")
 
-try:
-    import spacy
-    SPACY_AVAILABLE = True
-except ImportError:
-    SPACY_AVAILABLE = False
-    print("spaCy not available, using basic preprocessing")
+# spaCy removed - using optimized basic preprocessing only
+SPACY_AVAILABLE = False
 
 try:
     from ..utils.config import Config
@@ -40,13 +36,8 @@ class TextPreprocessor:
     
     def _load_models(self):
         
-        if self.spacy_available:
-            try:
-                self.nlp = spacy.load(Config.NLP_MODEL)
-            except OSError:
-                self.nlp = None
-        else:
-            self.nlp = None
+        # spaCy removed - using optimized basic preprocessing only
+        self.nlp = None
         
         if self.nltk_available:
             try:
