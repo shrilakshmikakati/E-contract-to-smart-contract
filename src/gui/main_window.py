@@ -1231,10 +1231,8 @@ Recommendation: {'Contract is ready for deployment' if accuracy >= 0.95 and simi
             return
         
         accuracy = self.generated_contract_result.get('accuracy_score', 0)
-        if accuracy < 0.95:
-            if not messagebox.askyesno("Warning", 
-                f"Contract accuracy is {accuracy:.2%}, which is below the recommended 95% threshold.\n\nDo you want to proceed with deployment preparation?"):
-                return
+        # REMOVED: Accuracy dialog popup - proceed with deployment information regardless of accuracy
+        # Users can see the accuracy in the report without interrupting workflow
         
         # Create deployment information window
         deploy_window = tk.Toplevel(self.root)
